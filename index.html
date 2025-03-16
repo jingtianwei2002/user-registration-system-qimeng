@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>代码管理系统 - 登录</title>
+    <title>代码管理系统</title>
     
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -22,68 +22,58 @@
             line-height: 1.6;
             background-color: #f5f5f5;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
         }
 
         .container {
-            width: 100%;
-            max-width: 400px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 20px;
         }
 
-        .form-container {
+        .card {
             background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .form-header h1 {
-            color: #333;
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
         }
 
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 15px;
         }
 
-        .form-group label {
+        .form-label {
             display: block;
-            margin-bottom: 0.5rem;
-            color: #555;
+            margin-bottom: 5px;
+            color: #333;
         }
 
         .form-input {
             width: 100%;
-            padding: 0.8rem;
+            padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
+            font-size: 16px;
         }
 
         .form-input:focus {
-            border-color: #4a90e2;
             outline: none;
-            box-shadow: 0 0 5px rgba(74, 144, 226, 0.3);
+            border-color: #4a90e2;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
         }
 
         .btn {
-            width: 100%;
-            padding: 0.8rem;
+            padding: 10px 20px;
             border: none;
             border-radius: 4px;
-            font-size: 1rem;
             cursor: pointer;
+            font-size: 16px;
             transition: background-color 0.3s;
         }
 
@@ -92,215 +82,266 @@
             color: white;
         }
 
-        .btn-primary:hover {
-            background-color: #357abd;
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
         }
 
         .btn-secondary {
             background-color: #6c757d;
             color: white;
-            margin-top: 0.5rem;
         }
 
-        .btn-secondary:hover {
-            background-color: #5a6268;
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
         }
 
-        .error-message {
-            color: #dc3545;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-            display: none;
-        }
-
-        .form-input.error {
-            border-color: #dc3545;
-        }
-
-        .form-input.error + .error-message {
-            display: block;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 1rem;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        .switch-form {
-            text-align: center;
-            margin-top: 1rem;
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
             color: #666;
         }
 
-        .switch-form a {
+        .tab.active {
+            border-bottom: 2px solid #4a90e2;
             color: #4a90e2;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .switch-form a:hover {
-            text-decoration: underline;
         }
 
         .panel {
             display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .code-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .code-item {
             background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
         }
 
-        .panel-header {
+        .code-actions {
+            margin-top: 10px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
+            gap: 10px;
         }
 
-        .welcome-text {
-            font-size: 1.5rem;
-            color: #333;
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
         }
 
-        .btn-logout {
+        .status-pending {
+            background-color: #ffd700;
+            color: #000;
+        }
+
+        .status-approved {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status-rejected {
             background-color: #dc3545;
             color: white;
-            padding: 0.5rem 1rem;
         }
 
-        .btn-logout:hover {
-            background-color: #c82333;
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+
+        .close {
+            float: right;
+            cursor: pointer;
+            font-size: 24px;
+        }
+
+        #loadingIndicator {
+            display: none;
+            text-align: center;
+            margin: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- 登录表单 -->
-        <div id="loginForm" class="form-container">
-            <div class="form-header">
-                <h1>用户登录</h1>
-                <p>欢迎使用代码管理系统</p>
-            </div>
-            <form id="loginFormElement" novalidate>
+        <div id="loginPanel" class="card">
+            <h2>用户登录</h2>
+            <form id="loginForm">
                 <div class="form-group">
-                    <label for="loginUsername">用户名</label>
-                    <input 
-                        type="text" 
-                        id="loginUsername" 
-                        class="form-input" 
-                        required 
-                        autocomplete="username"
-                        placeholder="请输入用户名">
-                    <div class="error-message">请输入有效的用户名</div>
+                    <label class="form-label">用户名</label>
+                    <input type="text" id="loginUsername" class="form-input" required>
+                    <div class="error-message"></div>
                 </div>
                 <div class="form-group">
-                    <label for="loginPassword">密码</label>
-                    <input 
-                        type="password" 
-                        id="loginPassword" 
-                        class="form-input" 
-                        required 
-                        autocomplete="current-password"
-                        placeholder="请输入密码">
-                    <div class="error-message">请输入密码</div>
+                    <label class="form-label">密码</label>
+                    <input type="password" id="loginPassword" class="form-input" required>
+                    <div class="error-message"></div>
                 </div>
-                <button type="submit" class="btn btn-primary" id="loginButton">登录</button>
-                <div class="loading" id="loginLoading">正在登录...</div>
-                <div class="switch-form">
-                    还没有账号？<a id="showRegisterButton">立即注册</a>
-                </div>
+                <button type="submit" class="btn btn-primary">登录</button>
+                <button type="button" class="btn btn-secondary" onclick="showRegisterPanel()">注册新用户</button>
+                <button type="button" class="btn btn-secondary" onclick="showStatusQuery()">查询状态</button>
             </form>
         </div>
 
         <!-- 注册表单 -->
-        <div id="registerForm" class="form-container" style="display: none;">
-            <div class="form-header">
-                <h1>用户注册</h1>
-                <p>创建新账号</p>
-            </div>
-            <form id="registerFormElement" novalidate>
+        <div id="registerPanel" class="card" style="display: none;">
+            <h2>用户注册</h2>
+            <form id="registerForm">
                 <div class="form-group">
-                    <label for="registerUsername">用户名</label>
-                    <input 
-                        type="text" 
-                        id="registerUsername" 
-                        class="form-input" 
-                        required 
-                        pattern="^[a-zA-Z0-9_]{4,20}$"
-                        placeholder="4-20位字母、数字或下划线">
-                    <div class="error-message">用户名必须是4-20位的字母、数字或下划线</div>
+                    <label class="form-label">用户名</label>
+                    <input type="text" id="registerUsername" class="form-input" required>
+                    <div class="error-message"></div>
                 </div>
                 <div class="form-group">
-                    <label for="registerCompany">单位</label>
-                    <input 
-                        type="text" 
-                        id="registerCompany" 
-                        class="form-input" 
-                        required 
-                        placeholder="请输入单位名称">
-                    <div class="error-message">请输入单位名称</div>
+                    <label class="form-label">单位</label>
+                    <input type="text" id="registerCompany" class="form-input" required>
+                    <div class="error-message"></div>
                 </div>
                 <div class="form-group">
-                    <label for="registerPhone">手机号码</label>
-                    <input 
-                        type="tel" 
-                        id="registerPhone" 
-                        class="form-input" 
-                        required 
-                        pattern="^1[3-9]\d{9}$"
-                        placeholder="请输入手机号码">
-                    <div class="error-message">请输入有效的手机号码</div>
+                    <label class="form-label">电话号码</label>
+                    <input type="tel" id="registerPhone" class="form-input" required>
+                    <div class="error-message"></div>
                 </div>
                 <div class="form-group">
-                    <label for="registerPassword">密码</label>
-                    <input 
-                        type="password" 
-                        id="registerPassword" 
-                        class="form-input" 
-                        required 
-                        minlength="6"
-                        placeholder="请设置密码（至少6位）">
-                    <div class="error-message">密码长度至少6位</div>
+                    <label class="form-label">密码</label>
+                    <input type="password" id="registerPassword" class="form-input" required>
+                    <div class="error-message"></div>
                 </div>
-                <button type="submit" class="btn btn-primary" id="registerButton">注册</button>
-                <div class="loading" id="registerLoading">正在注册...</div>
-                <div class="switch-form">
-                    已有账号？<a id="backToLoginButton">返回登录</a>
-                </div>
+                <button type="submit" class="btn btn-primary">提交注册</button>
+                <button type="button" class="btn btn-secondary" onclick="showLoginPanel()">返回登录</button>
             </form>
         </div>
 
-        <!-- 用户面板 -->
-        <div id="userPanel" class="panel">
-            <div class="panel-header">
-                <span class="welcome-text">欢迎, <span id="userName"></span></span>
-                <button id="logoutButton" class="btn btn-logout">退出</button>
+        <!-- 状态查询 -->
+        <div id="statusQueryPanel" class="card" style="display: none;">
+            <h2>注册状态查询</h2>
+            <form id="statusQueryForm">
+                <div class="form-group">
+                    <label class="form-label">电话号码</label>
+                    <input type="tel" id="queryPhone" class="form-input" required>
+                    <div class="error-message"></div>
+                </div>
+                <button type="submit" class="btn btn-primary">查询</button>
+                <button type="button" class="btn btn-secondary" onclick="showLoginPanel()">返回登录</button>
+            </form>
+            <div id="statusResult" class="card" style="display: none; margin-top: 20px;">
+                <h3>查询结果</h3>
+                <div id="statusContent"></div>
             </div>
-            <div id="codeFiles" class="content-section">
-                <h3>我的代码文件</h3>
-                <div id="fileList" class="file-grid"></div>
+        </div>
+
+        <!-- 用户面板 -->
+        <div id="userPanel" class="card" style="display: none;">
+            <div class="header">
+                <h2>欢迎, <span id="userName"></span></h2>
+                <button onclick="handleLogout()" class="btn btn-danger">退出</button>
+            </div>
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('codeFiles')">代码文件</button>
+            </div>
+            <div id="codeFiles" class="panel active">
+                <div id="fileList" class="code-grid"></div>
             </div>
         </div>
 
         <!-- 管理员面板 -->
-        <div id="adminPanel" class="panel">
-            <div class="panel-header">
-                <span class="welcome-text">管理员面板</span>
-                <button id="adminLogoutButton" class="btn btn-logout">退出</button>
+        <div id="adminPanel" class="card" style="display: none;">
+            <div class="header">
+                <h2>管理员面板</h2>
+                <button onclick="handleLogout()" class="btn btn-danger">退出</button>
             </div>
-            <div class="content-section">
-                <h3>待审批用户</h3>
-                <div id="approvalList" class="approval-grid"></div>
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('pendingUsers')">待审批用户</button>
+                <button class="tab" onclick="showTab('approvedUsers')">已审核用户</button>
+                <button class="tab" onclick="showTab('codeManager')">代码管理</button>
             </div>
-            <div class="content-section">
-                <h3>已审核用户</h3>
-                <div id="approvedList" class="approval-grid"></div>
+            
+            <!-- 待审批用户 -->
+            <div id="pendingUsers" class="panel active">
+                <div id="pendingList"></div>
             </div>
+            
+            <!-- 已审核用户 -->
+            <div id="approvedUsers" class="panel">
+                <div id="approvedList"></div>
+            </div>
+            
+            <!-- 代码管理 -->
+            <div id="codeManager" class="panel">
+                <button class="btn btn-primary" onclick="showUploadModal()">上传代码</button>
+                <div id="adminFileList" class="code-grid"></div>
+            </div>
+        </div>
+
+        <!-- 上传代码模态框 -->
+        <div id="uploadModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="hideUploadModal()">&times;</span>
+                <h2>上传代码</h2>
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label class="form-label">文件名</label>
+                        <input type="text" id="codeFileName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">语言</label>
+                        <select id="codeLanguage" class="form-input">
+                            <option value="JavaScript">JavaScript</option>
+                            <option value="Python">Python</option>
+                            <option value="Java">Java</option>
+                            <option value="HTML">HTML</option>
+                            <option value="CSS">CSS</option>
+                            <option value="Other">其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">代码内容</label>
+                        <textarea id="codeContent" class="form-input" rows="10" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <textarea id="codeDescription" class="form-input" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 加载指示器 -->
+        <div id="loadingIndicator">
+            <p>加载中...</p>
         </div>
     </div>
 
