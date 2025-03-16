@@ -1,5 +1,5 @@
 // 全局常量
-const CURRENT_TIME = '2025-03-16 11:25:33';
+const CURRENT_TIME = '2025-03-16 11:31:44';
 const CURRENT_USER = 'jingtianwei2002';
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin123';
@@ -29,23 +29,30 @@ let currentUser = null;
 
 // 工具函数
 function showLoading(show = true) {
-    document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+    const loader = document.getElementById('loadingIndicator');
+    if (loader) {
+        loader.style.display = show ? 'block' : 'none';
+    }
 }
 
 function showError(elementId, message) {
     const element = document.getElementById(elementId);
-    const errorDiv = element.nextElementSibling;
-    if (errorDiv && errorDiv.classList.contains('error-message')) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
+    if (element) {
+        const errorDiv = element.nextElementSibling;
+        if (errorDiv && errorDiv.classList.contains('error-message')) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
     }
 }
 
 function clearError(elementId) {
     const element = document.getElementById(elementId);
-    const errorDiv = element.nextElementSibling;
-    if (errorDiv && errorDiv.classList.contains('error-message')) {
-        errorDiv.style.display = 'none';
+    if (element) {
+        const errorDiv = element.nextElementSibling;
+        if (errorDiv && errorDiv.classList.contains('error-message')) {
+            errorDiv.style.display = 'none';
+        }
     }
 }
 
@@ -66,23 +73,35 @@ function validatePassword(password) {
 function hideAllForms() {
     const forms = ['loginForm', 'registerForm', 'statusQueryForm', 'userPanel', 'adminPanel'];
     forms.forEach(id => {
-        document.getElementById(id).style.display = 'none';
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.display = 'none';
+        }
     });
 }
 
 function showLoginForm() {
     hideAllForms();
-    document.getElementById('loginForm').style.display = 'block';
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.style.display = 'block';
+    }
 }
 
 function showRegisterForm() {
     hideAllForms();
-    document.getElementById('registerForm').style.display = 'block';
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.style.display = 'block';
+    }
 }
 
 function showStatusQuery() {
     hideAllForms();
-    document.getElementById('statusQueryForm').style.display = 'block';
+    const statusQueryForm = document.getElementById('statusQueryForm');
+    if (statusQueryForm) {
+        statusQueryForm.style.display = 'block';
+    }
 }
 
 // 登录处理
@@ -116,8 +135,11 @@ async function handleLogin(event) {
                 loginTime: CURRENT_TIME
             };
             hideAllForms();
-            document.getElementById('adminPanel').style.display = 'block';
-            loadPendingUsers();
+            const adminPanel = document.getElementById('adminPanel');
+            if (adminPanel) {
+                adminPanel.style.display = 'block';
+                await loadPendingUsers();
+            }
             return;
         }
 
@@ -150,9 +172,13 @@ async function handleLogin(event) {
         };
 
         hideAllForms();
-        document.getElementById('userPanel').style.display = 'block';
-        document.getElementById('userWelcome').textContent = username;
-        loadUserCodeList();
+        const userPanel = document.getElementById('userPanel');
+        const userWelcome = document.getElementById('userWelcome');
+        if (userPanel && userWelcome) {
+            userPanel.style.display = 'block';
+            userWelcome.textContent = username;
+            await loadUserCodeList();
+        }
 
     } catch (error) {
         console.error('登录失败:', error);
@@ -242,6 +268,8 @@ async function handleStatusQuery(event) {
             .get();
 
         const resultDiv = document.getElementById('queryResult');
+        if (!resultDiv) return;
+
         if (querySnapshot.empty) {
             resultDiv.innerHTML = '<p class="error">未找到注册信息</p>';
             return;
@@ -281,6 +309,8 @@ async function loadPendingUsers() {
             .get();
 
         const pendingList = document.getElementById('pendingList');
+        if (!pendingList) return;
+
         if (snapshot.empty) {
             pendingList.innerHTML = '<p>暂无待审核用户</p>';
             return;
@@ -310,6 +340,7 @@ async function loadPendingUsers() {
     }
 }
 
+// 审批操作
 async function handleApprove(userId) {
     if (!confirm('确定通过该用户的申请吗？')) return;
 
@@ -322,7 +353,7 @@ async function handleApprove(userId) {
         });
 
         alert('已通过用户申请');
-        loadPendingUsers();
+        await loadPendingUsers();
 
     } catch (error) {
         console.error('审批失败:', error);
@@ -344,7 +375,7 @@ async function handleReject(userId) {
         });
 
         alert('已拒绝用户申请');
-        loadPendingUsers();
+        await loadPendingUsers();
 
     } catch (error) {
         console.error('拒绝失败:', error);
@@ -356,15 +387,28 @@ async function handleReject(userId) {
 
 // 代码文件管理
 function showUploadForm() {
-    document.getElementById('modalTitle').textContent = '上传代码';
-    document.getElementById('codeId').value = '';
-    document.getElementById('fileName').value = '';
-    document.getElementById('codeContent').value = '';
-    document.getElementById('codeModal').style.display = 'block';
+    const modal = document.getElementById('codeModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const codeId = document.getElementById('codeId');
+    const fileName = document.getElementById('fileName');
+    const codeContent = document.getElementById('codeContent');
+
+    if (modal && modalTitle && codeId && fileName && codeContent) {
+        modalTitle.textContent = '上传代码';
+        codeId.value = '';
+        fileName.value = '';
+        fileName.readOnly = false;
+        codeContent.value = '';
+        codeContent.readOnly = false;
+        modal.style.display = 'block';
+    }
 }
 
 function hideCodeModal() {
-    document.getElementById('codeModal').style.display = 'none';
+    const modal = document.getElementById('codeModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 async function handleCodeSubmit(event) {
@@ -403,10 +447,11 @@ async function handleCodeSubmit(event) {
 
         alert(codeId ? '代码已更新' : '代码已上传');
         hideCodeModal();
+        
         if (currentUser.role === 'admin') {
-            loadAdminCodeList();
+            await loadAdminCodeList();
         } else {
-            loadUserCodeList();
+            await loadUserCodeList();
         }
 
     } catch (error) {
@@ -425,6 +470,8 @@ async function loadUserCodeList() {
             .get();
 
         const codeList = document.getElementById('userCodeList');
+        if (!codeList) return;
+
         if (snapshot.empty) {
             codeList.innerHTML = '<p>暂无代码文件</p>';
             return;
@@ -438,7 +485,8 @@ async function loadUserCodeList() {
                     <p>创建者: ${code.createdBy}</p>
                     <p>创建时间: ${code.createdAt}</p>
                     <div class="code-actions">
-                        <button onclick="viewCode('${doc.id}')" class="btn btn-secondary">查看</button>
+                        <button onclick="viewCode('${doc.id}')" class="btn btn-secondary">
+                                                <button onclick="viewCode('${doc.id}')" class="btn btn-secondary">查看</button>
                     </div>
                 </div>
             `;
@@ -460,6 +508,8 @@ async function loadAdminCodeList() {
             .get();
 
         const codeList = document.getElementById('adminCodeList');
+        if (!codeList) return;
+
         if (snapshot.empty) {
             codeList.innerHTML = '<p>暂无代码文件</p>';
             return;
@@ -474,7 +524,7 @@ async function loadAdminCodeList() {
                     <p>创建时间: ${code.createdAt}</p>
                     <div class="code-actions">
                         <button onclick="viewCode('${doc.id}')" class="btn btn-secondary">查看</button>
-                                                <button onclick="editCode('${doc.id}')" class="btn btn-primary">编辑</button>
+                        <button onclick="editCode('${doc.id}')" class="btn btn-primary">编辑</button>
                         <button onclick="deleteCode('${doc.id}')" class="btn btn-danger">删除</button>
                     </div>
                 </div>
@@ -499,13 +549,21 @@ async function viewCode(codeId) {
         }
 
         const code = doc.data();
-        document.getElementById('modalTitle').textContent = '查看代码';
-        document.getElementById('fileName').value = code.fileName;
-        document.getElementById('fileName').readOnly = true;
-        document.getElementById('codeContent').value = code.content;
-        document.getElementById('codeContent').readOnly = true;
-        document.getElementById('codeForm').onsubmit = null;
-        document.getElementById('codeModal').style.display = 'block';
+        const modalTitle = document.getElementById('modalTitle');
+        const fileName = document.getElementById('fileName');
+        const codeContent = document.getElementById('codeContent');
+        const codeForm = document.getElementById('codeForm');
+        const modal = document.getElementById('codeModal');
+
+        if (modalTitle && fileName && codeContent && codeForm && modal) {
+            modalTitle.textContent = '查看代码';
+            fileName.value = code.fileName;
+            fileName.readOnly = true;
+            codeContent.value = code.content;
+            codeContent.readOnly = true;
+            codeForm.onsubmit = null;
+            modal.style.display = 'block';
+        }
 
     } catch (error) {
         console.error('查看代码失败:', error);
@@ -525,14 +583,23 @@ async function editCode(codeId) {
         }
 
         const code = doc.data();
-        document.getElementById('modalTitle').textContent = '编辑代码';
-        document.getElementById('codeId').value = codeId;
-        document.getElementById('fileName').value = code.fileName;
-        document.getElementById('fileName').readOnly = false;
-        document.getElementById('codeContent').value = code.content;
-        document.getElementById('codeContent').readOnly = false;
-        document.getElementById('codeForm').onsubmit = handleCodeSubmit;
-        document.getElementById('codeModal').style.display = 'block';
+        const modalTitle = document.getElementById('modalTitle');
+        const codeIdInput = document.getElementById('codeId');
+        const fileName = document.getElementById('fileName');
+        const codeContent = document.getElementById('codeContent');
+        const codeForm = document.getElementById('codeForm');
+        const modal = document.getElementById('codeModal');
+
+        if (modalTitle && codeIdInput && fileName && codeContent && codeForm && modal) {
+            modalTitle.textContent = '编辑代码';
+            codeIdInput.value = codeId;
+            fileName.value = code.fileName;
+            fileName.readOnly = false;
+            codeContent.value = code.content;
+            codeContent.readOnly = false;
+            codeForm.onsubmit = handleCodeSubmit;
+            modal.style.display = 'block';
+        }
 
     } catch (error) {
         console.error('编辑代码失败:', error);
@@ -552,9 +619,9 @@ async function deleteCode(codeId) {
         await db.collection('codes').doc(codeId).delete();
         alert('代码文件已删除');
         if (currentUser.role === 'admin') {
-            loadAdminCodeList();
+            await loadAdminCodeList();
         } else {
-            loadUserCodeList();
+            await loadUserCodeList();
         }
     } catch (error) {
         console.error('删除代码失败:', error);
@@ -593,17 +660,23 @@ function switchTab(tabId) {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
+    // 更新时间和用户信息
+    console.log('系统初始化 -', '2025-03-16 11:34:22');
+    console.log('当前用户:', 'jingtianwei2002');
+
     // 绑定表单提交事件
-    document.getElementById('loginFormElement').addEventListener('submit', handleLogin);
-    document.getElementById('registerFormElement').addEventListener('submit', handleRegister);
-    document.getElementById('statusQueryElement').addEventListener('submit', handleStatusQuery);
-    document.getElementById('codeForm').addEventListener('submit', handleCodeSubmit);
+    const loginForm = document.getElementById('loginFormElement');
+    const registerForm = document.getElementById('registerFormElement');
+    const statusQueryForm = document.getElementById('statusQueryElement');
+    const codeForm = document.getElementById('codeForm');
+
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
+    if (registerForm) registerForm.addEventListener('submit', handleRegister);
+    if (statusQueryForm) statusQueryForm.addEventListener('submit', handleStatusQuery);
+    if (codeForm) codeForm.addEventListener('submit', handleCodeSubmit);
 
     // 显示登录表单
     showLoginForm();
-    
-    console.log('系统初始化完成 -', CURRENT_TIME);
-    console.log('当前用户:', CURRENT_USER);
 });
 
 // 导出全局函数
