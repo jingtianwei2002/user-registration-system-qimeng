@@ -540,17 +540,46 @@ function formatDate(dateString) {
 async function loadUserCodeList() {
     showLoading(true);
     try {
+        const codeList = document.getElementById('userCodeList');
+        if (!codeList) return;
+        
         console.log('Current user:', currentUser);
         console.log('Is admin:', currentUser && currentUser.role === 'admin');
 
+        const snapshot = await db.collection('codes')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        if (snapshot.empty) {
+            codeList.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-code-box-line" style="font-size: 48px; color: #666;"></i>
+                    <p>暂无代码文件</p>
+                </div>
+            `;
+            return;
+        }
+
         codeList.innerHTML = `
-           <div class="code-list-header">
+            <div class="code-list-header">
                 <h2>代码文件列表</h2>
                 ${currentUser && currentUser.role === 'admin' ? `
                     <button onclick="showUploadForm()" class="btn btn-primary upload-btn">
-                       <i class="ri-upload-2-line"></i> 上传代码
+                        <i class="ri-upload-2-line"></i> 上传代码
                     </button>
-        ` : ''}
+                ` : ''}
+                <div class="code-list-actions">
+                    <input type="text" id="searchCode" class="search-input" placeholder="搜索代码文件...">
+                    <select id="languageFilter" class="filter-select">
+                        <option value="">所有语言</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
+                </div>
+            </div>
                     <div class="code-list-actions">
         const snapshot = await db.collection('codes')
             .orderBy('createdAt', 'desc')
@@ -688,6 +717,33 @@ function getFileLanguage(fileName) {
 async function viewCode(codeId) {
     showLoading(true);
     try {
+        // 添加用户验证
+        if (!currentUser) {
+            throw new Error('请先登录');
+        }
+
+        const doc = await db.collection('codes').doc(codeId).get();
+        if (!doc.exists) {
+            throw new Error('代码文件不存在');
+        }
+
+        const code = doc.data();
+        const modalTitle = document.getElementById('modalTitle');
+        const fileName = document.getElementById('fileName');
+        const codeContent = document.getElementById('codeContent');
+        const codeForm = document.getElementById('codeForm');
+        const modal = document.getElementById('codeModal');
+
+        if (modalTitle && fileName && codeContent && codeForm && modal) {
+            modalTitle.textContent = currentUser.role === 'admin' ? '查看/编辑代码' : '查看代码';
+            fileName.value = code.fileName;
+            fileName.readOnly = currentUser.role !== 'admin';
+            codeContent.value = code.content;
+            codeContent.readOnly = currentUser.role !== 'admin';
+            codeForm.onsubmit = currentUser.role === 'admin' ? handleCodeSubmit : null;
+            modal.style.display = 'block';
+        }
+    try {
         const doc = await db.collection('codes').doc(codeId).get();
         if (!doc.exists) {
             alert('代码文件不存在');
@@ -720,11 +776,22 @@ async function viewCode(codeId) {
 }
 
 async function editCode(codeId) {
-    if (!currentUser || currentUser.role !== 'admin') {
-        console.error('Unauthorized access attempt');
-        alert('您没有权限执行此操作');
-        return;
-    }
+    try {
+        // 首先验证用户登录状态
+        if (!currentUser) {
+            throw new Error('请先登录');
+        }
+
+        // 获取最新的用户数据以确保权限是最新的
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (!userDoc.exists || userDoc.data().role !== 'admin') {
+            throw new Error('您没有管理员权限');
+        }
+
+        const doc = await db.collection('codes').doc(codeId).get();
+        if (!doc.exists) {
+            throw new Error('代码文件不存在');
+        }
 
     showLoading(true);
     try {
