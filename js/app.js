@@ -541,52 +541,52 @@ async function loadUserCodeList() {
         }
 
         codeList.innerHTML = `
-        <div class="code-list-header">
-            <h2>代码文件列表</h2>
-            <div class="code-list-actions">
-                <input type="text" id="searchCode" class="search-input" placeholder="搜索代码文件...">
-                <select id="languageFilter" class="filter-select">
-                    <option value="">所有语言</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="python">Python</option>
-                    <option value="java">Java</option>
-                    <option value="html">HTML</option>
-                    <option value="css">CSS</option>
-                </select>
+            <div class="code-list-header">
+                <h2>代码文件列表</h2>
+                <div class="code-list-actions">
+                    <input type="text" id="searchCode" class="search-input" placeholder="搜索代码文件...">
+                    <select id="languageFilter" class="filter-select">
+                        <option value="">所有语言</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
+                </div>
             </div>
-        </div>
-        <div class="code-grid">
-            ${snapshot.docs.map(doc => {
-                const code = doc.data();
-                return `
-                    <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
-                        <div class="code-card-header">
-                            <div class="code-icon">
-                                ${getLanguageIcon(code.fileName)}
+            <div class="code-grid">
+                ${snapshot.docs.map(doc => {
+                    const code = doc.data();
+                    return `
+                        <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
+                            <div class="code-card-header">
+                                <div class="code-icon">
+                                    ${getLanguageIcon(code.fileName)}
+                                </div>
+                                <div class="code-info">
+                                    <h3 class="code-title">${code.fileName}</h3>
+                                    <span class="code-meta">创建者: ${code.createdBy}</span>
+                                </div>
                             </div>
-                            <div class="code-info">
-                                <h3 class="code-title">${code.fileName}</h3>
-                                <span class="code-meta">创建者: ${code.createdBy}</span>
+                            <div class="code-card-content">
+                                <div class="code-preview">
+                                    ${getCodePreview(code.content)}
+                                </div>
+                            </div>
+                            <div class="code-card-footer">
+                                <span class="code-date">创建时间: ${formatDate(code.createdAt)}</span>
+                                <div class="code-actions">
+                                    <button onclick="viewCode('${doc.id}')" class="btn btn-primary btn-view">
+                                        <i class="ri-eye-line"></i> 查看
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div class="code-card-content">
-                            <div class="code-preview">
-                                ${getCodePreview(code.content)}
-                            </div>
-                        </div>
-                        <div class="code-card-footer">
-                            <span class="code-date">创建时间: ${formatDate(code.createdAt)}</span>
-                            <div class="code-actions">
-                                <button onclick="viewCode('${doc.id}')" class="btn btn-view" title="查看">
-                                    <i class="ri-eye-line"></i> 查看
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    `;
+                    `;
+                }).join('')}
+            </div>
+        `;
 
         initializeCodeListFilters();
 
