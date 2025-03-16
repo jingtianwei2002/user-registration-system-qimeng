@@ -12,9 +12,11 @@ const firebaseConfig = {
 
 
 // 初始化 Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+let firebaseApp;
+try {
+    firebaseApp = firebase.initializeApp(firebaseConfig);
+} catch (e) {
+    firebaseApp = firebase.app();
 
 // 获取 Firestore 实例
 const db = firebase.firestore();
