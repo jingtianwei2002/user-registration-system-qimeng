@@ -411,30 +411,75 @@ async function handleReject(userId) {
 
 // 代码文件管理
 function showUploadForm() {
-    const modal = document.getElementById('codeModal');
     const modalTitle = document.getElementById('modalTitle');
-    const codeId = document.getElementById('codeId');
+    const codeIdInput = document.getElementById('codeId');
     const fileName = document.getElementById('fileName');
     const codeContent = document.getElementById('codeContent');
+    const codeForm = document.getElementById('codeForm');
+    const modal = document.getElementById('codeModal');
 
-    if (modal && modalTitle && codeId && fileName && codeContent) {
+    if (modalTitle && fileName && codeContent && codeForm && modal) {
         modalTitle.textContent = '上传代码';
-        codeId.value = '';
+        if (codeIdInput) codeIdInput.value = '';
         fileName.value = '';
         fileName.readOnly = false;
         codeContent.value = '';
         codeContent.readOnly = false;
+        codeForm.onsubmit = handleCodeSubmit;
         modal.style.display = 'block';
     }
 }
 
-function hideCodeModal() {
-    const modal = document.getElementById('codeModal');
-    if (modal) {
-        modal.style.display = 'none';
+async function handleCodeSubmit(e) {
+    e.preventDefault();
+    showLoading(true);
+
+    try {
+        const codeId = document.getElementById('codeId').value;
+        const fileName = document.getElementById('fileName').value;
+        const content = document.getElementById('codeContent').value;
+
+        if (!fileName || !content) {
+            alert('请填写所有必填字段');
+            return;
+        }
+
+        const codeData = {
+            fileName,
+            content,
+            createdBy: currentUser.username,
+            updatedAt: new Date(),
+        };
+
+        if (codeId) {
+            // 更新现有代码
+            await db.collection('codes').doc(codeId).update({
+                ...codeData,
+            });
+            alert('代码已更新');
+        } else {
+            // 添加新代码
+            codeData.createdAt = new Date();
+            await db.collection('codes').add(codeData);
+            alert('代码已上传');
+        }
+
+        hideCodeModal();
+        
+        // 根据用户角色刷新不同的列表
+        if (currentUser.role === 'admin') {
+            await loadUserCodeList(); // 修改这里，改为 loadUserCodeList
+        } else {
+            await loadUserCodeList();
+        }
+
+    } catch (error) {
+        console.error('保存代码失败:', error);
+        alert('操作失败: ' + error.message);
+    } finally {
+        showLoading(false);
     }
 }
-
 function getLanguageIcon(fileName) {
     const extension = fileName.split('.').pop().toLowerCase();
     const icons = {
