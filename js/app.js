@@ -1,5 +1,5 @@
 // 全局常量
-const CURRENT_TIME = '2025-03-16 14:01:43';
+const CURRENT_TIME = '2025-03-16 14:05:38';
 const CURRENT_USER = 'jingtianwei2002';
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin123';
@@ -410,6 +410,17 @@ async function handleReject(userId) {
 }
 
 // 代码文件管理
+function hideCodeModal() {
+    const modal = document.getElementById('codeModal');
+    if (modal) {
+        modal.style.display = 'none';
+        // 重置表单
+        const form = document.getElementById('codeForm');
+        if (form) {
+            form.reset();
+        }
+    }
+}
 function showUploadForm() {
     const modalTitle = document.getElementById('modalTitle');
     const codeIdInput = document.getElementById('codeId');
