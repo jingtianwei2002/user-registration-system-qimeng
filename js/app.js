@@ -1,5 +1,5 @@
 // 全局常量
-const CURRENT_TIME = '2025-03-16 11:31:44';
+const CURRENT_TIME = '2025-03-16 11:48:09';
 const CURRENT_USER = 'jingtianwei2002';
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin123';
@@ -103,7 +103,6 @@ function showStatusQuery() {
         statusQueryForm.style.display = 'block';
     }
 }
-
 // 登录处理
 async function handleLogin(event) {
     event.preventDefault();
@@ -271,7 +270,12 @@ async function handleStatusQuery(event) {
         if (!resultDiv) return;
 
         if (querySnapshot.empty) {
-            resultDiv.innerHTML = '<p class="error">未找到注册信息</p>';
+            resultDiv.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-search-line" style="font-size: 48px; color: #666;"></i>
+                    <p>未找到注册信息</p>
+                </div>
+            `;
             return;
         }
 
@@ -282,13 +286,21 @@ async function handleStatusQuery(event) {
             rejected: '已拒绝'
         }[userData.status];
 
+        const statusClass = {
+            pending: 'status-pending',
+            approved: 'status-approved',
+            rejected: 'status-rejected'
+        }[userData.status];
+
         resultDiv.innerHTML = `
-            <div class="card">
+            <div class="card result-card">
                 <h3>查询结果</h3>
-                <p>用户名: ${userData.username}</p>
-                <p>单位: ${userData.company}</p>
-                <p>状态: ${statusText}</p>
-                <p>申请时间: ${userData.createdAt}</p>
+                <div class="result-content">
+                    <p><strong>用户名:</strong> ${userData.username}</p>
+                    <p><strong>单位:</strong> ${userData.company}</p>
+                    <p><strong>状态:</strong> <span class="${statusClass}">${statusText}</span></p>
+                    <p><strong>申请时间:</strong> ${userData.createdAt}</p>
+                </div>
             </div>
         `;
 
@@ -299,7 +311,6 @@ async function handleStatusQuery(event) {
         showLoading(false);
     }
 }
-
 // 管理员功能
 async function loadPendingUsers() {
     showLoading(true);
@@ -312,21 +323,35 @@ async function loadPendingUsers() {
         if (!pendingList) return;
 
         if (snapshot.empty) {
-            pendingList.innerHTML = '<p>暂无待审核用户</p>';
+            pendingList.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-user-follow-line" style="font-size: 48px; color: #666;"></i>
+                    <p>暂无待审核用户</p>
+                </div>
+            `;
             return;
         }
 
         pendingList.innerHTML = snapshot.docs.map(doc => {
             const user = doc.data();
             return `
-                <div class="card">
-                    <h3>${user.username}</h3>
-                    <p>单位: ${user.company}</p>
-                    <p>电话: ${user.phone}</p>
-                    <p>申请时间: ${user.createdAt}</p>
-                    <div class="actions">
-                        <button onclick="handleApprove('${doc.id}')" class="btn btn-primary">通过</button>
-                        <button onclick="handleReject('${doc.id}')" class="btn btn-danger">拒绝</button>
+                <div class="card user-card">
+                    <div class="user-card-header">
+                        <i class="ri-user-line user-icon"></i>
+                        <h3>${user.username}</h3>
+                    </div>
+                    <div class="user-card-content">
+                        <p><i class="ri-building-line"></i> 单位: ${user.company}</p>
+                        <p><i class="ri-phone-line"></i> 电话: ${user.phone}</p>
+                        <p><i class="ri-time-line"></i> 申请时间: ${user.createdAt}</p>
+                    </div>
+                    <div class="user-card-actions">
+                        <button onclick="handleApprove('${doc.id}')" class="btn btn-primary">
+                            <i class="ri-check-line"></i> 通过
+                        </button>
+                        <button onclick="handleReject('${doc.id}')" class="btn btn-danger">
+                            <i class="ri-close-line"></i> 拒绝
+                        </button>
                     </div>
                 </div>
             `;
@@ -340,7 +365,6 @@ async function loadPendingUsers() {
     }
 }
 
-// 审批操作
 async function handleApprove(userId) {
     if (!confirm('确定通过该用户的申请吗？')) return;
 
@@ -411,6 +435,41 @@ function hideCodeModal() {
     }
 }
 
+function getLanguageIcon(fileName) {
+    const extension = fileName.split('.').pop().toLowerCase();
+    const icons = {
+        'js': '<i class="ri-javascript-line"></i>',
+        'py': '<i class="ri-python-line"></i>',
+        'java': '<i class="ri-code-line"></i>',
+        'html': '<i class="ri-html5-line"></i>',
+        'css': '<i class="ri-css3-line"></i>',
+        'default': '<i class="ri-file-code-line"></i>'
+    };
+    return icons[extension] || icons.default;
+}
+
+function getCodePreview(content) {
+    const maxLength = 150;
+    const preview = content.slice(0, maxLength);
+    return `<pre class="code-preview-content">${preview}${content.length > maxLength ? '...' : ''}</pre>`;
+}
+
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (error) {
+        return dateString;
+    }
+}
+
 async function handleCodeSubmit(event) {
     event.preventDefault();
 
@@ -461,7 +520,6 @@ async function handleCodeSubmit(event) {
         showLoading(false);
     }
 }
-
 async function loadUserCodeList() {
     showLoading(true);
     try {
@@ -473,24 +531,64 @@ async function loadUserCodeList() {
         if (!codeList) return;
 
         if (snapshot.empty) {
-            codeList.innerHTML = '<p>暂无代码文件</p>';
+            codeList.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-code-box-line" style="font-size: 48px; color: #666;"></i>
+                    <p>暂无代码文件</p>
+                </div>
+            `;
             return;
         }
 
-        codeList.innerHTML = snapshot.docs.map(doc => {
-            const code = doc.data();
-            return `
-                <div class="code-item">
-                    <h3>${code.fileName}</h3>
-                    <p>创建者: ${code.createdBy}</p>
-                    <p>创建时间: ${code.createdAt}</p>
-                    <div class="code-actions">
-                        <button onclick="viewCode('${doc.id}')" class="btn btn-secondary">
-                                                <button onclick="viewCode('${doc.id}')" class="btn btn-secondary">查看</button>
-                    </div>
+        codeList.innerHTML = `
+            <div class="code-list-header">
+                <h2>代码文件列表</h2>
+                <div class="code-list-actions">
+                    <input type="text" id="searchCode" class="search-input" placeholder="搜索代码文件...">
+                    <select id="languageFilter" class="filter-select">
+                        <option value="">所有语言</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
                 </div>
-            `;
-        }).join('');
+            </div>
+            <div class="code-grid">
+                ${snapshot.docs.map(doc => {
+                    const code = doc.data();
+                    return `
+                        <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
+                            <div class="code-card-header">
+                                <div class="code-icon">
+                                    ${getLanguageIcon(code.fileName)}
+                                </div>
+                                <div class="code-info">
+                                    <h3 class="code-title">${code.fileName}</h3>
+                                    <span class="code-meta">创建者: ${code.createdBy}</span>
+                                </div>
+                            </div>
+                            <div class="code-card-content">
+                                <div class="code-preview">
+                                    ${getCodePreview(code.content)}
+                                </div>
+                            </div>
+                            <div class="code-card-footer">
+                                <span class="code-date">创建时间: ${formatDate(code.createdAt)}</span>
+                                <div class="code-actions">
+                                    <button onclick="viewCode('${doc.id}')" class="btn btn-icon" title="查看">
+                                        <i class="ri-eye-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+
+        initializeCodeListFilters();
 
     } catch (error) {
         console.error('加载代码列表失败:', error);
@@ -511,25 +609,73 @@ async function loadAdminCodeList() {
         if (!codeList) return;
 
         if (snapshot.empty) {
-            codeList.innerHTML = '<p>暂无代码文件</p>';
+            codeList.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-code-box-line" style="font-size: 48px; color: #666;"></i>
+                    <p>暂无代码文件</p>
+                </div>
+            `;
             return;
         }
 
-        codeList.innerHTML = snapshot.docs.map(doc => {
-            const code = doc.data();
-            return `
-                <div class="code-item">
-                    <h3>${code.fileName}</h3>
-                    <p>创建者: ${code.createdBy}</p>
-                    <p>创建时间: ${code.createdAt}</p>
-                    <div class="code-actions">
-                        <button onclick="viewCode('${doc.id}')" class="btn btn-secondary">查看</button>
-                        <button onclick="editCode('${doc.id}')" class="btn btn-primary">编辑</button>
-                        <button onclick="deleteCode('${doc.id}')" class="btn btn-danger">删除</button>
-                    </div>
+        codeList.innerHTML = `
+            <div class="code-list-header">
+                <h2>代码文件管理</h2>
+                <div class="code-list-actions">
+                    <input type="text" id="adminSearchCode" class="search-input" placeholder="搜索代码文件...">
+                    <select id="adminLanguageFilter" class="filter-select">
+                        <option value="">所有语言</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
+                    <button onclick="showUploadForm()" class="btn btn-primary">
+                        <i class="ri-add-line"></i> 新建代码
+                    </button>
                 </div>
-            `;
-        }).join('');
+            </div>
+            <div class="code-grid">
+                ${snapshot.docs.map(doc => {
+                    const code = doc.data();
+                    return `
+                        <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
+                            <div class="code-card-header">
+                                <div class="code-icon">
+                                    ${getLanguageIcon(code.fileName)}
+                                </div>
+                                <div class="code-info">
+                                    <h3 class="code-title">${code.fileName}</h3>
+                                    <span class="code-meta">创建者: ${code.createdBy}</span>
+                                </div>
+                            </div>
+                            <div class="code-card-content">
+                                <div class="code-preview">
+                                    ${getCodePreview(code.content)}
+                                </div>
+                            </div>
+                            <div class="code-card-footer">
+                                <span class="code-date">更新时间: ${formatDate(code.updatedAt)}</span>
+                                <div class="code-actions">
+                                    <button onclick="viewCode('${doc.id}')" class="btn btn-icon" title="查看">
+                                        <i class="ri-eye-line"></i>
+                                    </button>
+                                    <button onclick="editCode('${doc.id}')" class="btn btn-icon" title="编辑">
+                                        <i class="ri-edit-line"></i>
+                                    </button>
+                                    <button onclick="deleteCode('${doc.id}')" class="btn btn-icon" title="删除">
+                                        <i class="ri-delete-bin-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+
+        initializeCodeListFilters('admin');
 
     } catch (error) {
         console.error('加载代码列表失败:', error);
@@ -537,6 +683,50 @@ async function loadAdminCodeList() {
     } finally {
         showLoading(false);
     }
+}
+
+function initializeCodeListFilters(prefix = '') {
+    const searchInput = document.getElementById(`${prefix}searchCode`.trim());
+    const languageFilter = document.getElementById(`${prefix}languageFilter`.trim());
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => filterCodeCards(prefix));
+    }
+    
+    if (languageFilter) {
+        languageFilter.addEventListener('change', (e) => filterCodeCards(prefix));
+    }
+}
+
+function filterCodeCards(prefix = '') {
+    const searchInput = document.getElementById(`${prefix}searchCode`.trim());
+    const languageFilter = document.getElementById(`${prefix}languageFilter`.trim());
+    const codeCards = document.querySelectorAll('.code-card');
+
+    const searchText = searchInput ? searchInput.value.toLowerCase() : '';
+    const selectedLanguage = languageFilter ? languageFilter.value.toLowerCase() : '';
+
+    codeCards.forEach(card => {
+        const title = card.querySelector('.code-title').textContent.toLowerCase();
+        const language = card.dataset.language.toLowerCase();
+        
+        const matchesSearch = title.includes(searchText);
+        const matchesLanguage = !selectedLanguage || language === selectedLanguage;
+
+        card.style.display = matchesSearch && matchesLanguage ? 'block' : 'none';
+    });
+}
+
+function getFileLanguage(fileName) {
+    const extension = fileName.split('.').pop().toLowerCase();
+    const languages = {
+        'js': 'javascript',
+        'py': 'python',
+        'java': 'java',
+        'html': 'html',
+        'css': 'css'
+    };
+    return languages[extension] || 'other';
 }
 
 async function viewCode(codeId) {
@@ -657,12 +847,10 @@ function switchTab(tabId) {
         loadPendingUsers();
     }
 }
-
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
-    // 更新时间和用户信息
-    console.log('系统初始化 -', '2025-03-16 11:34:22');
-    console.log('当前用户:', 'jingtianwei2002');
+    console.log('系统初始化 -', CURRENT_TIME);
+    console.log('当前用户:', CURRENT_USER);
 
     // 绑定表单提交事件
     const loginForm = document.getElementById('loginFormElement');
