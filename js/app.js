@@ -431,7 +431,7 @@ function hideCodeModal() {
     }
 }
 function showUploadForm() {
-    console.log('Showing upload form...'); // 调试日志
+    console.log('Showing upload form...');
     const modalTitle = document.getElementById('modalTitle');
     const codeIdInput = document.getElementById('codeId');
     const fileName = document.getElementById('fileName');
@@ -448,10 +448,11 @@ function showUploadForm() {
         codeContent.readOnly = false;
         modal.style.display = 'block';
         
-        // 直接给表单元素绑定事件处理函数
+        // 修改这里，使用普通的函数绑定
         codeForm.onsubmit = function(e) {
             e.preventDefault();
             handleCodeSubmit(e);
+            return false; // 防止表单默认提交
         };
     }
 }
@@ -823,10 +824,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusQueryForm = document.getElementById('statusQueryElement');
     const codeForm = document.getElementById('codeForm');
 
-    if (loginForm) loginForm.addEventListener('submit', handleLogin);
-    if (registerForm) registerForm.addEventListener('submit', handleRegister);
-    if (statusQueryForm) statusQueryForm.addEventListener('submit', handleStatusQuery);
-    if (codeForm) codeForm.addEventListener('submit', handleCodeSubmit);
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegister);
+    }
+    if (statusQueryForm) {
+        statusQueryForm.addEventListener('submit', handleStatusQuery);
+    }
+    if (codeForm) {
+        codeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleCodeSubmit(e);
+            return false;
+        });
+    }
 
     // 显示登录表单
     showLoginForm();
