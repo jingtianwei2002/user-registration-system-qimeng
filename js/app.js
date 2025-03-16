@@ -578,7 +578,7 @@ async function loadUserCodeList() {
                                 <span class="code-date">创建时间: ${formatDate(code.createdAt)}</span>
                                 <div class="code-actions">
                                     <button onclick="viewCode('${doc.id}')" class="btn btn-primary btn-view">
-                                        <i class="ri-eye-line"></i> 查看
+                                        查看
                                     </button>
                                 </div>
                             </div>
