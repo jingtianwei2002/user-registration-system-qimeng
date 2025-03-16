@@ -126,13 +126,11 @@ async function handleLogin(event) {
     showLoading(true);
     try {
        // 管理员登录
-if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    console.log('管理员登录成功');
     currentUser = {
-        username: ADMIN_USERNAME,
-        role: 'admin',
-        loginTime: CURRENT_TIME
-    };
+    username: ADMIN_USERNAME,
+    role: 'admin',  // 确保这个属性被正确设置
+    loginTime: CURRENT_TIME
+};
     hideAllForms();
     const adminPanel = document.getElementById('adminPanel');
     if (adminPanel) {
@@ -501,22 +499,7 @@ async function handleCodeSubmit(e) {
     }
 }
 
-        hideCodeModal();
         
-        // 根据用户角色刷新不同的列表
-        if (currentUser.role === 'admin') {
-            await loadUserCodeList(); // 修改这里，改为 loadUserCodeList
-        } else {
-            await loadUserCodeList();
-        }
-
-    } catch (error) {
-        console.error('保存代码失败:', error);
-        alert('操作失败: ' + error.message);
-    } finally {
-        showLoading(false);
-    }
-}
 function getLanguageIcon(fileName) {
     const extension = fileName.split('.').pop().toLowerCase();
     const icons = {
@@ -556,6 +539,18 @@ function formatDate(dateString) {
 async function loadUserCodeList() {
     showLoading(true);
     try {
+        console.log('Current user:', currentUser);
+        console.log('Is admin:', currentUser && currentUser.role === 'admin');
+
+        codeList.innerHTML = `
+           <div class="code-list-header">
+                <h2>代码文件列表</h2>
+                ${currentUser && currentUser.role === 'admin' ? `
+                    <button onclick="showUploadForm()" class="btn btn-primary upload-btn">
+                       <i class="ri-upload-2-line"></i> 上传代码
+                    </button>
+        ` : ''}
+                    <div class="code-list-actions">
         const snapshot = await db.collection('codes')
             .orderBy('createdAt', 'desc')
             .get();
