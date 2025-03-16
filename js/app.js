@@ -1,5 +1,5 @@
 // 全局常量
-const CURRENT_TIME = '2025-03-16 11:48:09';
+const CURRENT_TIME = '2025-03-16 14:01:43';
 const CURRENT_USER = 'jingtianwei2002';
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin123';
@@ -515,56 +515,7 @@ function formatDate(dateString) {
     }
 }
 
-async function handleCodeSubmit(event) {
-    event.preventDefault();
 
-    const fileName = document.getElementById('fileName').value.trim();
-    const content = document.getElementById('codeContent').value.trim();
-    const codeId = document.getElementById('codeId').value;
-
-    if (!fileName || !content) {
-        alert('请填写所有必填字段');
-        return;
-    }
-
-    showLoading(true);
-    try {
-        if (codeId) {
-            // 更新现有代码
-            await db.collection('codes').doc(codeId).update({
-                fileName,
-                content,
-                updatedAt: CURRENT_TIME,
-                updatedBy: currentUser.username
-            });
-        } else {
-            // 添加新代码
-            await db.collection('codes').add({
-                fileName,
-                content,
-                createdAt: CURRENT_TIME,
-                createdBy: currentUser.username,
-                updatedAt: CURRENT_TIME,
-                updatedBy: currentUser.username
-            });
-        }
-
-        alert(codeId ? '代码已更新' : '代码已上传');
-        hideCodeModal();
-        
-        if (currentUser.role === 'admin') {
-            await loadUserCodeList();
-        } else {
-            await loadUserCodeList();
-        }
-
-    } catch (error) {
-        console.error('保存代码失败:', error);
-        alert('操作失败: ' + error.message);
-    } finally {
-        showLoading(false);
-    }
-}
 async function loadUserCodeList() {
     showLoading(true);
     try {
