@@ -643,84 +643,6 @@ async function loadUserCodeList() {
     }
 }
 
-async function loadUserCodeList() {
-    showLoading(true);
-    try {
-        const snapshot = await db.collection('codes')
-            .orderBy('createdAt', 'desc')
-            .get();
-
-        const codeList = document.getElementById('userCodeList');
-        if (!codeList) return;
-
-        if (snapshot.empty) {
-            codeList.innerHTML = `
-                <div class="empty-state">
-                    <i class="ri-code-box-line" style="font-size: 48px; color: #666;"></i>
-                    <p>暂无代码文件</p>
-                </div>
-            `;
-            return;
-        }
-
-        codeList.innerHTML = `
-            <div class="code-list-header">
-                <h2>代码文件列表</h2>
-                <div class="code-list-actions">
-                    <input type="text" id="searchCode" class="search-input" placeholder="搜索代码文件...">
-                    <select id="languageFilter" class="filter-select">
-                        <option value="">所有语言</option>
-                        <option value="javascript">JavaScript</option>
-                        <option value="python">Python</option>
-                        <option value="java">Java</option>
-                        <option value="html">HTML</option>
-                        <option value="css">CSS</option>
-                    </select>
-                </div>
-            </div>
-            <div class="code-grid">
-                ${snapshot.docs.map(doc => {
-                    const code = doc.data();
-                    return `
-                        <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
-                            <div class="code-card-header">
-                                <div class="code-icon">
-                                    ${getLanguageIcon(code.fileName)}
-                                </div>
-                                <div class="code-info">
-                                    <h3 class="code-title">${code.fileName}</h3>
-                                    <span class="code-meta">创建者: ${code.createdBy}</span>
-                                </div>
-                            </div>
-                            <div class="code-card-content">
-                                <div class="code-preview">
-                                    ${getCodePreview(code.content)}
-                                </div>
-                            </div>
-                            <div class="code-card-footer">
-                                <span class="code-date">创建时间: ${formatDate(code.createdAt)}</span>
-                                <div class="code-actions">
-                                    <button onclick="viewCode('${doc.id}')" class="btn btn-primary">
-                                        查看
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-
-        initializeCodeListFilters();
-
-    } catch (error) {
-        console.error('加载代码列表失败:', error);
-        alert('加载失败: ' + error.message);
-    } finally {
-        showLoading(false);
-    }
-}
-
 function initializeCodeListFilters(prefix = '') {
     const searchInput = document.getElementById(`${prefix}searchCode`.trim());
     const languageFilter = document.getElementById(`${prefix}languageFilter`.trim());
@@ -911,6 +833,7 @@ window.handleLogout = handleLogout;
 window.showUploadForm = showUploadForm;
 window.hideCodeModal = hideCodeModal;
 window.handleApprove = handleApprove;
+window.deleteCode = deleteCode;
 window.handleReject = handleReject;
 window.viewCode = viewCode;
 window.editCode = editCode;
