@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+  
+    <meta charset="UTF-8">
+    <title>代码管理系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 登录表单 -->
+    <div id="loginForm" class="form-container">
+        <h2>用户登录</h2>
+        <div class="form-group">
+            <input type="text" id="loginUsername" placeholder="用户名" class="form-input">
+            <input type="password" id="loginPassword" placeholder="密码" class="form-input">
+            <button onclick="login()" class="btn primary">登录</button>
+            <button onclick="showRegisterForm()" class="btn secondary">注册新用户</button>
+        </div>
+    </div>
+
+    <!-- 注册表单 -->
+    <div id="registerForm" class="form-container" style="display: none;">
+        <h2>用户注册</h2>
+        <div class="form-group">
+            <input type="text" id="registerUsername" placeholder="用户名" class="form-input" required>
+            <input type="text" id="registerCompany" placeholder="单位" class="form-input" required>
+            <input type="text" id="registerPhone" placeholder="电话号码" class="form-input" required>
+            <input type="password" id="registerPassword" placeholder="密码" class="form-input" required>
+            <button onclick="register()" class="btn primary">提交注册</button>
+            <button onclick="showLoginForm()" class="btn secondary">返回登录</button>
+        </div>
+    </div>
+
+    <!-- 用户面板 -->
+    <div id="userPanel" class="panel" style="display: none;">
+        <div class="header">
+            <h2>欢迎, <span id="userName"></span></h2>
+            <button onclick="logout()" class="btn danger">退出</button>
+        </div>
+        <div id="codeFiles" class="content-section">
+            <h3>代码文件列表</h3>
+            <div id="fileList" class="file-grid"></div>
+        </div>
+    </div>
+
+    <!-- 管理员面板 -->
+    <div id="adminPanel" class="panel" style="display: none;">
+        <div class="header">
+            <h2>管理员面板</h2>
+            <button onclick="logout()" class="btn danger">退出</button>
+        </div>
+        
+        <div class="content-section">
+            <h3>待审批用户</h3>
+            <div id="approvalList" class="approval-grid"></div>
+        </div>
+
+        <div class="content-section">
+            <h3>已审核用户</h3>
+            <div id="approvedList" class="approval-grid"></div>
+        </div>
+
+        <div class="content-section">
+            <h3>代码文件管理</h3>
+            <div class="code-upload-form">
+                <input type="text" id="codeFileName" placeholder="文件名" class="form-input">
+                <select id="codeLanguage" class="form-input">
+                    <option value="JavaScript">JavaScript</option>
+                    <option value="Python">Python</option>
+                    <option value="Java">Java</option>
+                    <option value="HTML">HTML</option>
+                    <option value="CSS">CSS</option>
+                    <option value="SQL">SQL</option>
+                    <option value="Other">其他</option>
+                </select>
+                <textarea id="codeContent" placeholder="代码内容" class="form-input code-input"></textarea>
+                <textarea id="codeDescription" placeholder="描述（可选）" class="form-input"></textarea>
+                <button onclick="uploadCode()" class="btn primary">保存代码</button>
+            </div>
+            <div id="adminFileList" class="file-grid"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
