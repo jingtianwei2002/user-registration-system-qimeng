@@ -58,7 +58,7 @@ function clearError(elementId) {
 
 // 表单验证
 function validateUsername(username) {
-    return username.length >= 3 && username.length <= 20;
+    return username.trim().length > 0;
 }
 
 function validatePhone(phone) {
@@ -192,6 +192,7 @@ async function handleRegister(event) {
     event.preventDefault();
 
     const username = document.getElementById('registerUsername').value.trim();
+    const name = document.getElementById('registerName').value.trim();
     const company = document.getElementById('registerCompany').value.trim();
     const phone = document.getElementById('registerPhone').value.trim();
     const password = document.getElementById('registerPassword').value;
@@ -201,6 +202,10 @@ async function handleRegister(event) {
     if (!validateUsername(username)) {
         showError('registerUsername', '用户名长度需在3-20个字符之间');
         isValid = false;
+    }
+    if (!name) {
+    showError('registerName', '请输入姓名');
+    isValid = false;
     }
     if (!company) {
         showError('registerCompany', '请输入单位名称');
@@ -227,16 +232,17 @@ async function handleRegister(event) {
             showError('registerUsername', '用户名已被使用');
             return;
         }
-
+         
         // 创建新用户
         await db.collection('users').add({
-            username,
-            company,
-            phone,
-            password,
-            status: 'pending',
-            createdAt: CURRENT_TIME,
-            createdBy: CURRENT_USER
+              username,
+              name,
+              company,
+              phone,
+              password,
+              status: 'pending',
+              createdAt: CURRENT_TIME,
+              createdBy: CURRENT_USER
         });
 
         alert('注册申请已提交，请等待管理员审核');
@@ -297,6 +303,7 @@ async function handleStatusQuery(event) {
                 <h3>查询结果</h3>
                 <div class="result-content">
                     <p><strong>用户名:</strong> ${userData.username}</p>
+                    <p><strong>姓名:</strong> ${userData.name}</p>
                     <p><strong>单位:</strong> ${userData.company}</p>
                     <p><strong>状态:</strong> <span class="${statusClass}">${statusText}</span></p>
                     <p><strong>申请时间:</strong> ${userData.createdAt}</p>
@@ -341,6 +348,7 @@ async function loadPendingUsers() {
                         <h3>${user.username}</h3>
                     </div>
                     <div class="user-card-content">
+                        <p><i class="ri-user-line"></i> 姓名: ${user.name}</p>
                         <p><i class="ri-building-line"></i> 单位: ${user.company}</p>
                         <p><i class="ri-phone-line"></i> 电话: ${user.phone}</p>
                         <p><i class="ri-time-line"></i> 申请时间: ${user.createdAt}</p>
