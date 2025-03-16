@@ -1,5 +1,5 @@
 // 全局常量
-const CURRENT_TIME = '2025-03-16 14:05:38';
+const CURRENT_TIME = '2025-03-16 14:12:36';
 const CURRENT_USER = 'jingtianwei2002';
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin123';
@@ -565,6 +565,7 @@ async function loadUserCodeList() {
             <div class="code-grid">
                 ${snapshot.docs.map(doc => {
                     const code = doc.data();
+                    const isAdmin = currentUser && currentUser.role === 'admin';
                     return `
                         <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
                             <div class="code-card-header">
@@ -587,6 +588,14 @@ async function loadUserCodeList() {
                                     <button onclick="viewCode('${doc.id}')" class="btn btn-primary btn-view">
                                         查看
                                     </button>
+                                    ${isAdmin ? `
+                                        <button onclick="editCode('${doc.id}')" class="btn btn-secondary btn-view">
+                                            编辑
+                                        </button>
+                                        <button onclick="deleteCode('${doc.id}')" class="btn btn-danger btn-view">
+                                            删除
+                                        </button>
+                                    ` : ''}
                                 </div>
                             </div>
                         </div>
