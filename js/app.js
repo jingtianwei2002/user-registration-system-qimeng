@@ -553,7 +553,7 @@ async function handleCodeSubmit(event) {
         hideCodeModal();
         
         if (currentUser.role === 'admin') {
-            await loadAdminCodeList();
+            await loadUserCodeList();
         } else {
             await loadUserCodeList();
         }
@@ -845,7 +845,7 @@ async function deleteCode(codeId) {
         await db.collection('codes').doc(codeId).delete();
         alert('代码文件已删除');
         if (currentUser.role === 'admin') {
-            await loadAdminCodeList();
+            await loadUserCodeList();
         } else {
             await loadUserCodeList();
         }
@@ -878,7 +878,7 @@ function switchTab(tabId) {
     }
 
     if (tabId === 'codeFiles') {
-        loadAdminCodeList();
+        loadUserCodeList();
     } else if (tabId === 'pendingUsers') {
         loadPendingUsers();
     }
