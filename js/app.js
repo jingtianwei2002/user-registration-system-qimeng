@@ -125,22 +125,25 @@ async function handleLogin(event) {
 
     showLoading(true);
     try {
-        // 管理员登录
-        if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-            console.log('管理员登录成功');
-            currentUser = {
-                username: ADMIN_USERNAME,
-                role: 'admin',
-                loginTime: CURRENT_TIME
-            };
-            hideAllForms();
-            const adminPanel = document.getElementById('adminPanel');
-            if (adminPanel) {
-                adminPanel.style.display = 'block';
-                await loadPendingUsers();
-            }
-            return;
-        }
+       // 管理员登录
+if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    console.log('管理员登录成功');
+    currentUser = {
+        username: ADMIN_USERNAME,
+        role: 'admin',
+        loginTime: CURRENT_TIME
+    };
+    hideAllForms();
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) {
+        adminPanel.style.display = 'block';
+        // 先加载待审核用户列表
+        await loadPendingUsers();
+        // 然后切换到代码管理标签并加载代码列表
+        switchTab('codeFiles');
+    }
+    return;
+}
 
         // 普通用户登录
         const querySnapshot = await db.collection('users')
@@ -430,6 +433,7 @@ function hideCodeModal() {
     }
 }
 function showUploadForm() {
+    console.log('Showing upload form...'); // 调试日志
     const modalTitle = document.getElementById('modalTitle');
     const codeIdInput = document.getElementById('codeId');
     const fileName = document.getElementById('fileName');
@@ -444,11 +448,15 @@ function showUploadForm() {
         fileName.readOnly = false;
         codeContent.value = '';
         codeContent.readOnly = false;
-        codeForm.onsubmit = handleCodeSubmit;
         modal.style.display = 'block';
+        
+        // 直接给表单元素绑定事件处理函数
+        codeForm.onsubmit = function(e) {
+            e.preventDefault();
+            handleCodeSubmit(e);
+        };
     }
 }
-
 async function handleCodeSubmit(e) {
     e.preventDefault();
     showLoading(true);
@@ -555,6 +563,10 @@ async function loadUserCodeList() {
             return;
         }
 
+        // 在这里添加 console.log 来调试
+        console.log('Current user:', currentUser);
+        console.log('Is admin:', currentUser && currentUser.role === 'admin');
+
         codeList.innerHTML = `
             <div class="code-list-header">
                 <h2>代码文件列表</h2>
@@ -574,6 +586,7 @@ async function loadUserCodeList() {
                 ${snapshot.docs.map(doc => {
                     const code = doc.data();
                     const isAdmin = currentUser && currentUser.role === 'admin';
+                    console.log('Rendering code item:', doc.id, 'isAdmin:', isAdmin); // 调试日志
                     return `
                         <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
                             <div class="code-card-header">
@@ -778,12 +791,15 @@ function switchTab(tabId) {
     if (selectedTab && selectedPanel) {
         selectedTab.classList.add('active');
         selectedPanel.classList.add('active');
-    }
-
-    if (tabId === 'codeFiles') {
-        loadUserCodeList();
-    } else if (tabId === 'pendingUsers') {
-        loadPendingUsers();
+        
+        // 根据切换的标签加载相应的内容
+        if (tabId === 'codeFiles') {
+            console.log('Loading code files...'); // 调试日志
+            loadUserCodeList();
+        } else if (tabId === 'pendingUsers') {
+            console.log('Loading pending users...'); // 调试日志
+            loadPendingUsers();
+        }
     }
 }
 // 页面加载完成后初始化
@@ -819,9 +835,5 @@ window.viewCode = viewCode;
 window.editCode = editCode;
 window.deleteCode = deleteCode;
 window.switchTab = switchTab;
-window.deleteCode = deleteCode;
-window.handleReject = handleReject;
-window.viewCode = viewCode;
-window.editCode = editCode;
-window.deleteCode = deleteCode;
+window.handleCodeSubmit = handleCodeSubmit;  
 window.switchTab = switchTab;
