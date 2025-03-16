@@ -474,22 +474,32 @@ async function handleCodeSubmit(e) {
         const codeData = {
             fileName,
             content,
-            createdBy: currentUser.username,
-            updatedAt: new Date(),
+            updatedBy: currentUser.username,
+            updatedAt: CURRENT_TIME
         };
 
         if (codeId) {
             // 更新现有代码
-            await db.collection('codes').doc(codeId).update({
-                ...codeData,
-            });
+            await db.collection('codes').doc(codeId).update(codeData);
             alert('代码已更新');
         } else {
             // 添加新代码
-            codeData.createdAt = new Date();
+            codeData.createdBy = currentUser.username;
+            codeData.createdAt = CURRENT_TIME;
             await db.collection('codes').add(codeData);
             alert('代码已上传');
         }
+
+        hideCodeModal();
+        await loadUserCodeList();
+
+    } catch (error) {
+        console.error('保存代码失败:', error);
+        alert('操作失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
 
         hideCodeModal();
         
@@ -714,6 +724,12 @@ async function viewCode(codeId) {
 }
 
 async function editCode(codeId) {
+    if (!currentUser || currentUser.role !== 'admin') {
+        console.error('Unauthorized access attempt');
+        alert('您没有权限执行此操作');
+        return;
+    }
+
     showLoading(true);
     try {
         const doc = await db.collection('codes').doc(codeId).get();
@@ -748,7 +764,6 @@ async function editCode(codeId) {
         showLoading(false);
     }
 }
-
     
 
 async function deleteCode(codeId) {
@@ -835,5 +850,4 @@ window.viewCode = viewCode;
 window.editCode = editCode;
 window.deleteCode = deleteCode;
 window.switchTab = switchTab;
-window.handleCodeSubmit = handleCodeSubmit;  
-window.switchTab = switchTab;
+window.handleCodeSubmit = handleCodeSubmit; 
