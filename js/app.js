@@ -598,14 +598,14 @@ async function loadUserCodeList() {
     }
 }
 
-async function loadAdminCodeList() {
+async function loadUserCodeList() {
     showLoading(true);
     try {
         const snapshot = await db.collection('codes')
             .orderBy('createdAt', 'desc')
             .get();
 
-        const codeList = document.getElementById('adminCodeList');
+        const codeList = document.getElementById('userCodeList');
         if (!codeList) return;
 
         if (snapshot.empty) {
@@ -620,10 +620,10 @@ async function loadAdminCodeList() {
 
         codeList.innerHTML = `
             <div class="code-list-header">
-                <h2>代码文件管理</h2>
+                <h2>代码文件列表</h2>
                 <div class="code-list-actions">
-                    <input type="text" id="adminSearchCode" class="search-input" placeholder="搜索代码文件...">
-                    <select id="adminLanguageFilter" class="filter-select">
+                    <input type="text" id="searchCode" class="search-input" placeholder="搜索代码文件...">
+                    <select id="languageFilter" class="filter-select">
                         <option value="">所有语言</option>
                         <option value="javascript">JavaScript</option>
                         <option value="python">Python</option>
@@ -631,9 +631,6 @@ async function loadAdminCodeList() {
                         <option value="html">HTML</option>
                         <option value="css">CSS</option>
                     </select>
-                    <button onclick="showUploadForm()" class="btn btn-primary">
-                        <i class="ri-add-line"></i> 新建代码
-                    </button>
                 </div>
             </div>
             <div class="code-grid">
@@ -656,16 +653,10 @@ async function loadAdminCodeList() {
                                 </div>
                             </div>
                             <div class="code-card-footer">
-                                <span class="code-date">更新时间: ${formatDate(code.updatedAt)}</span>
+                                <span class="code-date">创建时间: ${formatDate(code.createdAt)}</span>
                                 <div class="code-actions">
-                                    <button onclick="viewCode('${doc.id}')" class="btn btn-icon" title="查看">
-                                        <i class="ri-eye-line"></i>
-                                    </button>
-                                    <button onclick="editCode('${doc.id}')" class="btn btn-icon" title="编辑">
-                                        <i class="ri-edit-line"></i>
-                                    </button>
-                                    <button onclick="deleteCode('${doc.id}')" class="btn btn-icon" title="删除">
-                                        <i class="ri-delete-bin-line"></i>
+                                    <button onclick="viewCode('${doc.id}')" class="btn btn-primary">
+                                        查看
                                     </button>
                                 </div>
                             </div>
@@ -675,7 +666,7 @@ async function loadAdminCodeList() {
             </div>
         `;
 
-        initializeCodeListFilters('admin');
+        initializeCodeListFilters();
 
     } catch (error) {
         console.error('加载代码列表失败:', error);
