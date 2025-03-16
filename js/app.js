@@ -736,6 +736,8 @@ async function editCode(codeId) {
     }
 }
 
+    
+
 async function deleteCode(codeId) {
     if (!confirm('确定要删除这个代码文件吗？此操作不可恢复。')) {
         return;
@@ -812,6 +814,11 @@ window.handleLogout = handleLogout;
 window.showUploadForm = showUploadForm;
 window.hideCodeModal = hideCodeModal;
 window.handleApprove = handleApprove;
+window.handleReject = handleReject;
+window.viewCode = viewCode;
+window.editCode = editCode;
+window.deleteCode = deleteCode;
+window.switchTab = switchTab;
 window.deleteCode = deleteCode;
 window.handleReject = handleReject;
 window.viewCode = viewCode;
