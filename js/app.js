@@ -1,1158 +1,884 @@
-// Firebase 配置
-const firebaseConfig = {
-    // 这里需要填入你的 Firebase 配置信息
-  apiKey: "AIzaSyDVkZFZPP15dtqrtJDkCGrXwzx5AWPGLRU",
-  authDomain: "user-system-qimeng.firebaseapp.com",
-  projectId: "user-system-qimeng",
-  storageBucket: "user-system-qimeng.firebasestorage.app",
-  messagingSenderId: "726411001480",
-  appId: "1:726411001480:web:f36236c4b9391262fca93d",
-  measurementId: "G-PSE6HF8GR4"
-};
-
-
-// 初始化 Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-// 获取 Firestore 实例
-const db = firebase.firestore();
-
-// 全局变量
-let currentUser = null;
+// 全局常量
+const CURRENT_TIME = '2025-03-16 11:48:09';
+const CURRENT_USER = 'jingtianwei2002';
 const ADMIN_USERNAME = 'admin';
 const ADMIN_PASSWORD = 'admin123';
 
+// Firebase 配置
+const firebaseConfig = {
+    apiKey: "AIzaSyDVkZFZPP15dtqrtJDkCGrXwzx5AWPGLRU",
+    authDomain: "user-system-qimeng.firebaseapp.com",
+    projectId: "user-system-qimeng",
+    storageBucket: "user-system-qimeng.firebasestorage.app",
+    messagingSenderId: "726411001480",
+    appId: "1:726411001480:web:f36236c4b9391262fca93d",
+    measurementId: "G-PSE6HF8GR4"
+};
 
-// 用户注册函数
-async function register() {
-    try {
-        // 获取表单数据
-        const username = document.getElementById('registerUsername').value.trim();
-        const password = document.getElementById('registerPassword').value;
-        const company = document.getElementById('registerCompany').value.trim();
-        const phone = document.getElementById('registerPhone').value.trim();
+// 初始化 Firebase
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log('Firebase 初始化成功 -', CURRENT_TIME);
+} catch (error) {
+    console.error('Firebase 初始化失败:', error);
+    alert('系统初始化失败，请刷新页面重试');
+}
 
-        console.log('开始注册流程...', { username, company, phone });
+const db = firebase.firestore();
+let currentUser = null;
 
-        // 表单验证
-        if (!username || !password || !company || !phone) {
-            alert('请填写所有必填字段');
-            return;
-        }
-
-        // 验证用户名格式
-        if (!validateUsername(username)) {
-            alert('用户名必须是4-20位的字母、数字或下划线');
-            return;
-        }
-
-        // 验证密码长度
-        if (!validatePassword(password)) {
-            alert('密码长度必须至少6位');
-            return;
-        }
-
-        // 验证手机号格式
-        if (!validatePhone(phone)) {
-            alert('请输入正确的手机号码');
-            return;
-        }
-
-        // 检查是否是管理员用户名
-        if (username === ADMIN_USERNAME) {
-            alert('此用户名不可用');
-            return;
-        }
-
-        // 检查用户名是否已存在
-        const userSnapshot = await db.collection('users')
-            .where('username', '==', username)
-            .get();
-
-        if (!userSnapshot.empty) {
-            alert('该用户名已被使用');
-            return;
-        }
-
-        // 创建用户数据
-        const userData = {
-            username: username,
-            password: password,
-            company: company,
-            phone: phone,
-            isApproved: false,
-            role: 'user',
-            createdAt: getCurrentDateTime(),
-            lastLogin: null,
-            registeredBy: 'self',
-            status: 'pending', // pending, approved, rejected
-            approvalDate: null,
-            approvedBy: null,
-            notes: '',
-            lastUpdated: getCurrentDateTime(),
-            loginCount: 0,
-            lastIP: '',
-            deviceInfo: navigator.userAgent
-        };
-
-        // 保存到数据库
-        await db.collection('users').add(userData);
-
-        // 清除表单
-        clearRegistrationForm();
-
-        // 提示用户并返回登录页面
-        alert('注册申请已提交，请等待管理员审批');
-        showLoginForm();
-
-    } catch (error) {
-        console.error('注册错误:', error);
-        alert('注册失败: ' + error.message);
+// 工具函数
+function showLoading(show = true) {
+    const loader = document.getElementById('loadingIndicator');
+    if (loader) {
+        loader.style.display = show ? 'block' : 'none';
     }
 }
 
-// 验证用户名格式（4-20位字母、数字或下划线）
-function validateUsername(username) {
-    const usernameRegex = /^[a-zA-Z0-9_]{4,20}$/;
-    return usernameRegex.test(username);
+function showError(elementId, message) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const errorDiv = element.nextElementSibling;
+        if (errorDiv && errorDiv.classList.contains('error-message')) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+    }
 }
 
-// 验证密码长度（至少6位）
+function clearError(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const errorDiv = element.nextElementSibling;
+        if (errorDiv && errorDiv.classList.contains('error-message')) {
+            errorDiv.style.display = 'none';
+        }
+    }
+}
+
+// 表单验证
+function validateUsername(username) {
+    return username.length >= 3 && username.length <= 20;
+}
+
+function validatePhone(phone) {
+    return /^1[3-9]\d{9}$/.test(phone);
+}
+
 function validatePassword(password) {
     return password.length >= 6;
 }
 
-// 验证手机号码格式（中国大陆手机号）
-function validatePhone(phone) {
-    const phoneRegex = /^1[3-9]\d{9}$/;
-    return phoneRegex.test(phone);
-}
-
-// 加载待审批用户列表
-async function loadPendingApprovals() {
-    const approvalList = document.getElementById('approvalList');
-    if (!approvalList) return;
-    
-    approvalList.innerHTML = '<p>正在加载...</p>';
-
-    try {
-        // 只获取状态为 pending 的用户
-        const snapshot = await db.collection('users')
-            .where('status', '==', 'pending')
-            .get();
-
-        if (snapshot.empty) {
-            approvalList.innerHTML = '<p>没有待审批的用户</p>';
-            return;
+// 页面切换
+function hideAllForms() {
+    const forms = ['loginForm', 'registerForm', 'statusQueryForm', 'userPanel', 'adminPanel'];
+    forms.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.display = 'none';
         }
-
-        let tableHTML = `
-            <table class="user-table">
-                <thead>
-                    <tr>
-                        <th>用户名</th>
-                        <th>单位</th>
-                        <th>电话</th>
-                        <th>注册时间</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        snapshot.forEach(doc => {
-            const user = doc.data();
-            tableHTML += `
-                <tr>
-                    <td>${user.username}</td>
-                    <td>${user.company || '-'}</td>
-                    <td>${user.phone || '-'}</td>
-                    <td>${user.createdAt || '-'}</td>
-                    <td>
-                        <button onclick="approveUser('${doc.id}')" class="btn primary btn-small">批准</button>
-                        <button onclick="rejectUser('${doc.id}')" class="btn danger btn-small">拒绝</button>
-                    </td>
-                </tr>
-            `;
-        });
-
-        tableHTML += '</tbody></table>';
-        approvalList.innerHTML = tableHTML;
-
-    } catch (error) {
-        console.error('加载待审批用户失败:', error);
-        approvalList.innerHTML = `<p>加载失败: ${error.message}</p>`;
-    }
+    });
 }
 
-// 获取用户状态显示文本
-function getUserStatus(status) {
-    const statusMap = {
-        'pending': '待审核',
-        'approved': '已批准',
-        'rejected': '已拒绝',
-        'disabled': '已禁用'
-    };
-    return statusMap[status] || status;
-}
-
-// 批准用户
-async function approveUser(userId) {
-    try {
-        if (!currentUser || currentUser.username !== ADMIN_USERNAME) {
-            alert('只有管理员可以审批用户');
-            return;
-        }
-
-        // 更新用户状态
-        const updateData = {
-            isApproved: true,
-            status: 'approved',
-            approvalDate: getCurrentDateTime(),
-            approvedBy: ADMIN_USERNAME,
-            lastUpdated: getCurrentDateTime(),
-            loginCount: 0
-        };
-
-        await db.collection('users').doc(userId).update(updateData);
-        alert('用户已批准');
-        
-        // 重新加载两个列表
-        await Promise.all([
-            loadPendingApprovals(),
-            loadApprovedUsers()
-        ]);
-    } catch (error) {
-        console.error('批准用户失败:', error);
-        alert('操作失败: ' + error.message);
-    }
-}
-
-// 拒绝用户
-async function rejectUser(userId) {
-    try {
-        await db.collection('users').doc(userId).update({
-            isApproved: false,
-            status: 'rejected',
-            approvalDate: getCurrentDateTime(),
-            approvedBy: currentUser.username,
-            lastUpdated: getCurrentDateTime()
-        });
-        alert('已拒绝用户注册申请');
-        loadPendingApprovals();
-    } catch (error) {
-        console.error('拒绝用户失败:', error);
-        alert('操作失败: ' + error.message);
-    }
-}
-
-// 禁用用户
-async function disableUser(userId) {
-    if (!confirm('确定要禁用该用户吗？')) return;
-    try {
-        await db.collection('users').doc(userId).update({
-            isApproved: false,
-            status: 'disabled',
-            lastUpdated: getCurrentDateTime()
-        });
-        alert('用户已禁用');
-        
-        // 重新加载两个列表
-        await Promise.all([
-            loadPendingApprovals(),
-            loadApprovedUsers()
-        ]);
-    } catch (error) {
-        console.error('禁用用户失败:', error);
-        alert('操作失败: ' + error.message);
-    }
-}
-
-// 启用用户
-async function enableUser(userId) {
-    try {
-        await db.collection('users').doc(userId).update({
-            isApproved: true,
-            status: 'approved',
-            lastUpdated: getCurrentDateTime()
-        });
-        alert('用户已启用');
-        loadPendingApprovals();
-    } catch (error) {
-        console.error('启用用户失败:', error);
-        alert('操作失败: ' + error.message);
-    }
-}
-
-// 获取当前时间
-function getCurrentDateTime() {
-    const now = new Date();
-    return now.getUTCFullYear() + '-' +
-           String(now.getUTCMonth() + 1).padStart(2, '0') + '-' +
-           String(now.getUTCDate()).padStart(2, '0') + ' ' +
-           String(now.getUTCHours()).padStart(2, '0') + ':' +
-           String(now.getUTCMinutes()).padStart(2, '0') + ':' +
-           String(now.getUTCSeconds()).padStart(2, '0');
-}
-
-// 显示登录表单
 function showLoginForm() {
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('userPanel').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'none';
-}
-
-// 显示注册表单
-function showRegisterForm() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
-    document.getElementById('userPanel').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'none';
-}
-
-// 在页面加载时添加注册按钮事件监听器
-document.addEventListener('DOMContentLoaded', () => {
-    // 监听注册按钮点击事件
-    const registerButton = document.querySelector('button[onclick="register()"]');
-    if (registerButton) {
-        registerButton.addEventListener('click', (e) => {
-            e.preventDefault(); // 防止表单默认提交
-            register();
-        });
+    hideAllForms();
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.style.display = 'block';
     }
-
-    // 默认显示登录页面
-    showLoginForm();
-});
-// 界面切换函数
-function showLoginForm() {
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('userPanel').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'none';
-    document.getElementById('loginUsername').value = ''; // 清空登录表单
-    document.getElementById('loginPassword').value = '';
 }
 
 function showRegisterForm() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'block';
-    document.getElementById('userPanel').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'none';
-}
-
-async function showUserPanel() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('userPanel').style.display = 'block';
-    document.getElementById('adminPanel').style.display = 'none';
-    
-    // 显示当前用户信息 - 修改这部分，只显示username
-    const userInfo = document.getElementById('userInfo');
-    if (userInfo && currentUser) {
-        userInfo.innerHTML = `
-            <h3>欢迎, ${currentUser.username}</h3>
-            <p>登录时间: ${getCurrentDateTime()}</p>
-        `;
+    hideAllForms();
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.style.display = 'block';
     }
-
-    console.log('正在加载用户面板的代码文件...');
-    await loadCodeFiles(false); // 改为异步等待
 }
 
-async function showAdminPanel() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('userPanel').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'block';
-    
-    // 显示管理员信息
-    const adminInfo = document.getElementById('adminInfo');
-    if (adminInfo) {
-        adminInfo.innerHTML = `
-            <h3>管理员面板</h3>
-            <p>当前时间: ${getCurrentDateTime()}</p>
-        `;
+function showStatusQuery() {
+    hideAllForms();
+    const statusQueryForm = document.getElementById('statusQueryForm');
+    if (statusQueryForm) {
+        statusQueryForm.style.display = 'block';
     }
-
-    // 加载待审批用户和已审核用户列表
-    loadPendingApprovals();
-    loadApprovedUsers(); // 确保这个函数被调用
-    console.log('正在加载管理员面板的代码文件...');
-    await loadCodeFiles(true); // 改为异步等待
 }
+// 登录处理
+async function handleLogin(event) {
+    event.preventDefault();
+    console.log('处理登录请求...');
 
-// 修改登录函数
-async function login() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    // 验证输入
+    let isValid = true;
+    if (!username) {
+        showError('loginUsername', '请输入用户名');
+        isValid = false;
+    }
+    if (!password) {
+        showError('loginPassword', '请输入密码');
+        isValid = false;
+    }
+    if (!isValid) return;
+
+    showLoading(true);
     try {
-        const username = document.getElementById('loginUsername').value.trim();
-        const password = document.getElementById('loginPassword').value;
-
-        if (!username || !password) {
-            alert('请输入用户名和密码');
-            return;
-        }
-
-        // 管理员登录检查
+        // 管理员登录
         if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+            console.log('管理员登录成功');
             currentUser = {
                 username: ADMIN_USERNAME,
-                name: '管理员',
                 role: 'admin',
-                isApproved: true
+                loginTime: CURRENT_TIME
             };
-            console.log('管理员登录成功');
-            showAdminPanel();
+            hideAllForms();
+            const adminPanel = document.getElementById('adminPanel');
+            if (adminPanel) {
+                adminPanel.style.display = 'block';
+                await loadPendingUsers();
+            }
             return;
         }
 
         // 普通用户登录
-        const userSnapshot = await db.collection('users')
+        const querySnapshot = await db.collection('users')
             .where('username', '==', username)
             .get();
 
-        if (userSnapshot.empty) {
-            alert('用户名不存在');
+        if (querySnapshot.empty) {
+            showError('loginUsername', '用户名不存在');
             return;
         }
 
-        const userDoc = userSnapshot.docs[0];
+        const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data();
 
         if (userData.password !== password) {
-            alert('密码错误');
+            showError('loginPassword', '密码错误');
             return;
         }
 
-        if (!userData.isApproved) {
-            alert('账号尚未获得审批，请等待管理员审批');
+        if (userData.status !== 'approved') {
+            showError('loginUsername', '账号尚未通过审核');
             return;
         }
-
-        // 更新最后登录时间
-        await db.collection('users').doc(userDoc.id).update({
-            lastLogin: getCurrentDateTime()
-        });
 
         currentUser = {
             ...userData,
-            uid: userDoc.id
+            id: userDoc.id
         };
 
-        console.log('用户登录成功:', username);
-        showUserPanel();
+        hideAllForms();
+        const userPanel = document.getElementById('userPanel');
+        const userWelcome = document.getElementById('userWelcome');
+        if (userPanel && userWelcome) {
+            userPanel.style.display = 'block';
+            userWelcome.textContent = username;
+            await loadUserCodeList();
+        }
 
     } catch (error) {
-        console.error('登录错误:', error);
+        console.error('登录失败:', error);
         alert('登录失败: ' + error.message);
+    } finally {
+        showLoading(false);
     }
 }
 
-// 退出登录
-function logout() {
-    currentUser = null;
-    showLoginForm();
-}
+// 注册处理
+async function handleRegister(event) {
+    event.preventDefault();
 
-// 确保 HTML 中有相应的容器元素
-document.addEventListener('DOMContentLoaded', () => {
-    // 添加用户信息容器（如果在 HTML 中不存在）
-    if (!document.getElementById('userInfo')) {
-        const userPanel = document.getElementById('userPanel');
-        if (userPanel) {
-            const userInfo = document.createElement('div');
-            userInfo.id = 'userInfo';
-            userPanel.appendChild(userInfo);
-        }
+    const username = document.getElementById('registerUsername').value.trim();
+    const company = document.getElementById('registerCompany').value.trim();
+    const phone = document.getElementById('registerPhone').value.trim();
+    const password = document.getElementById('registerPassword').value;
+
+    // 验证输入
+    let isValid = true;
+    if (!validateUsername(username)) {
+        showError('registerUsername', '用户名长度需在3-20个字符之间');
+        isValid = false;
     }
-});
+    if (!company) {
+        showError('registerCompany', '请输入单位名称');
+        isValid = false;
+    }
+    if (!validatePhone(phone)) {
+        showError('registerPhone', '请输入有效的手机号码');
+        isValid = false;
+    }
+    if (!validatePassword(password)) {
+        showError('registerPassword', '密码长度至少为6个字符');
+        isValid = false;
+    }
+    if (!isValid) return;
 
-// 加载待审批用户
-async function loadPendingApprovals() {
-    const approvalList = document.getElementById('approvalList');
-    if (!approvalList) return;
-    
-    approvalList.innerHTML = '<p>正在加载...</p>';
-
+    showLoading(true);
     try {
-        const snapshot = await db.collection('users')
-            .where('isApproved', '==', false)
+        // 检查用户名是否已存在
+        const existingUser = await db.collection('users')
+            .where('username', '==', username)
             .get();
 
-        if (snapshot.empty) {
-            approvalList.innerHTML = '<p>没有待审批的用户</p>';
+        if (!existingUser.empty) {
+            showError('registerUsername', '用户名已被使用');
             return;
         }
 
-        approvalList.innerHTML = '';
-        snapshot.forEach(doc => {
-            const user = doc.data();
-            const div = document.createElement('div');
-            div.className = 'approval-item';
-            div.innerHTML = `
-                <div class="user-info">
-                    <p>用户名: ${user.username}</p>
-                    <p>单位: ${user.company || '未填写'}</p>
-                    <p>电话: ${user.phone || '未填写'}</p>
-                    <p>注册时间: ${user.createdAt || '未知'}</p>
-                </div>
-                <div class="approval-actions">
-                    <button onclick="approveUser('${doc.id}')" class="btn primary">批准</button>
+        // 创建新用户
+        await db.collection('users').add({
+            username,
+            company,
+            phone,
+            password,
+            status: 'pending',
+            createdAt: CURRENT_TIME,
+            createdBy: CURRENT_USER
+        });
+
+        alert('注册申请已提交，请等待管理员审核');
+        showLoginForm();
+
+    } catch (error) {
+        console.error('注册失败:', error);
+        alert('注册失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// 状态查询
+async function handleStatusQuery(event) {
+    event.preventDefault();
+
+    const phone = document.getElementById('queryPhone').value.trim();
+    if (!validatePhone(phone)) {
+        showError('queryPhone', '请输入有效的手机号码');
+        return;
+    }
+
+    showLoading(true);
+    try {
+        const querySnapshot = await db.collection('users')
+            .where('phone', '==', phone)
+            .get();
+
+        const resultDiv = document.getElementById('queryResult');
+        if (!resultDiv) return;
+
+        if (querySnapshot.empty) {
+            resultDiv.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-search-line" style="font-size: 48px; color: #666;"></i>
+                    <p>未找到注册信息</p>
                 </div>
             `;
-            approvalList.appendChild(div);
-        });
-
-    } catch (error) {
-        console.error('加载待审批用户失败:', error);
-        approvalList.innerHTML = `
-            <div class="error-message">
-                <p>加载失败: ${error.message}</p>
-                <button onclick="loadPendingApprovals()" class="btn secondary">重新加载</button>
-            </div>
-        `;
-    }
-}
-
-// 批准用户
-async function approveUser(userId) {
-    try {
-        if (!currentUser || currentUser.username !== ADMIN_USERNAME) {
-            alert('只有管理员可以审批用户');
             return;
         }
 
-        await db.collection('users').doc(userId).update({
-            isApproved: true,
-            approvedAt: new Date().toISOString(),
-            approvedBy: ADMIN_USERNAME
-        });
+        const userData = querySnapshot.docs[0].data();
+        const statusText = {
+            pending: '待审核',
+            approved: '已通过',
+            rejected: '已拒绝'
+        }[userData.status];
 
-        alert('用户已批准');
-        loadPendingApprovals();
-    } catch (error) {
-        console.error('批准用户失败:', error);
-        alert('操作失败: ' + error.message);
-    }
-}
+        const statusClass = {
+            pending: 'status-pending',
+            approved: 'status-approved',
+            rejected: 'status-rejected'
+        }[userData.status];
 
-// 显示管理员面板
-async function showAdminPanel() {
-    document.getElementById('loginForm').style.display = 'none';
-    document.getElementById('registerForm').style.display = 'none';
-    document.getElementById('userPanel').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'block';
-    
-    // 加载数据
-    loadPendingApprovals();
-    console.log('正在加载管理员面板的代码文件...');
-    await loadCodeFiles(true); // 改为异步等待
-}
-
-// 页面加载完成后的初始化
-document.addEventListener('DOMContentLoaded', () => {
-    // 默认显示登录页面
-    showLoginForm();
-});
-
-// 获取当前时间的函数
-function getCurrentDateTime() {
-    const now = new Date();
-    return now.getUTCFullYear() + '-' +
-           String(now.getUTCMonth() + 1).padStart(2, '0') + '-' +
-           String(now.getUTCDate()).padStart(2, '0') + ' ' +
-           String(now.getUTCHours()).padStart(2, '0') + ':' +
-           String(now.getUTCMinutes()).padStart(2, '0') + ':' +
-           String(now.getUTCSeconds()).padStart(2, '0');
-}
-
-// 更新上传代码函数
-async function uploadCode() {
-    try {
-        const fileName = document.getElementById('codeFileName').value.trim();
-        const codeContent = document.getElementById('codeContent').value.trim();
-        const language = document.getElementById('codeLanguage').value;
-        const description = document.getElementById('codeDescription').value.trim();
-
-        if (!fileName || !codeContent) {
-            alert('请填写文件名和代码内容');
-            return;
-        }
-
-        const currentTime = getCurrentDateTime();
-
-        const codeData = {
-            name: fileName,
-            content: codeContent,
-            language: language,
-            description: description,
-            uploadedBy: currentUser.username,
-            uploaderName: currentUser.username,
-            uploadedAt: currentTime,
-            lastModified: currentTime
-        };
-
-        // 保存到 codefiles 集合
-        const docRef = await db.collection('codefiles').add(codeData);
-
-        // 同时保存到 date 集合
-        await db.collection('date').add({
-            fileId: docRef.id,
-            fileName: fileName,
-            language: language,
-            uploadTime: currentTime,
-            uploadedBy: currentUser.username,
-            content: codeContent,
-            description: description
-        });
-
-        alert('代码文件保存成功');
-        clearCodeForm();
-        loadCodeFiles(true);
-
-    } catch (error) {
-        console.error('保存代码失败:', error);
-        alert('保存失败: ' + error.message);
-    }
-}
-
-// 清理代码表单
-function clearCodeForm() {
-    document.getElementById('codeFileName').value = '';
-    document.getElementById('codeContent').value = '';
-    document.getElementById('codeDescription').value = '';
-    document.getElementById('codeLanguage').value = 'JavaScript';
-    // 清除本地存储的草稿
-    localStorage.removeItem('draftCode');
-}
-
-// 添加自动保存功能
-function setupAutoSave() {
-    const codeContent = document.getElementById('codeContent');
-    if (codeContent) {
-        let autoSaveTimeout;
-        codeContent.addEventListener('input', () => {
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = setTimeout(() => {
-                localStorage.setItem('draftCode', codeContent.value);
-                console.log('代码已自动保存到本地存储');
-            }, 1000);
-        });
-
-        // 恢复上次编辑的内容
-        const savedDraft = localStorage.getItem('draftCode');
-        if (savedDraft) {
-            codeContent.value = savedDraft;
-            console.log('已恢复上次编辑的内容');
-        }
-    }
-}
-
-// 修改编辑代码函数
-async function editCode(fileId) {
-    try {
-        const doc = await db.collection('codefiles').doc(fileId).get();
-        if (!doc.exists) {
-            alert('文件不存在');
-            return;
-        }
-
-        const file = doc.data();
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <h2>编辑代码文件</h2>
-                <div class="form-group">
-                    <label>文件名:</label>
-                    <input type="text" id="editFileName" value="${file.name}" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label>语言:</label>
-                    <select id="editCodeLanguage" class="form-input">
-                        <option value="JavaScript" ${file.language === 'JavaScript' ? 'selected' : ''}>JavaScript</option>
-                        <option value="Python" ${file.language === 'Python' ? 'selected' : ''}>Python</option>
-                        <option value="Java" ${file.language === 'Java' ? 'selected' : ''}>Java</option>
-                        <option value="Other" ${file.language === 'Other' ? 'selected' : ''}>其他</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>代码内容:</label>
-                    <textarea id="editCodeContent" class="form-input code-input" rows="15">${file.content}</textarea>
-                </div>
-                <div class="form-group">
-                    <label>描述:</label>
-                    <textarea id="editCodeDescription" class="form-input" rows="3">${file.description || ''}</textarea>
-                </div>
-                <div class="button-group">
-                    <button onclick="saveCodeEdit('${fileId}')" class="btn primary">保存</button>
-                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="btn secondary">取消</button>
+        resultDiv.innerHTML = `
+            <div class="card result-card">
+                <h3>查询结果</h3>
+                <div class="result-content">
+                    <p><strong>用户名:</strong> ${userData.username}</p>
+                    <p><strong>单位:</strong> ${userData.company}</p>
+                    <p><strong>状态:</strong> <span class="${statusClass}">${statusText}</span></p>
+                    <p><strong>申请时间:</strong> ${userData.createdAt}</p>
                 </div>
             </div>
         `;
-        document.body.appendChild(modal);
+
     } catch (error) {
-        console.error('编辑代码错误:', error);
-        alert('加载失败: ' + error.message);
+        console.error('查询失败:', error);
+        alert('查询失败: ' + error.message);
+    } finally {
+        showLoading(false);
     }
 }
-
-// 保存编辑后的代码
-async function saveCodeEdit(fileId) {
+// 管理员功能
+async function loadPendingUsers() {
+    showLoading(true);
     try {
-        const fileName = document.getElementById('editFileName').value.trim();
-        const codeContent = document.getElementById('editCodeContent').value.trim();
-        const language = document.getElementById('editCodeLanguage').value;
-        const description = document.getElementById('editCodeDescription').value.trim();
-
-        if (!fileName || !codeContent) {
-            alert('请填写文件名和代码内容');
-            return;
-        }
-
-        const currentTime = getCurrentDateTime();
-
-        // 更新 codefiles 集合
-        await db.collection('codefiles').doc(fileId).update({
-            name: fileName,
-            content: codeContent,
-            language: language,
-            description: description,
-            lastModified: currentTime
-        });
-
-        // 更新 date 集合
-        const dateSnapshot = await db.collection('date')
-            .where('fileId', '==', fileId)
+        const snapshot = await db.collection('users')
+            .where('status', '==', 'pending')
             .get();
-        
-        if (!dateSnapshot.empty) {
-            await db.collection('date').doc(dateSnapshot.docs[0].id).update({
-                fileName: fileName,
-                language: language,
-                content: codeContent,
-                description: description,
-                uploadTime: currentTime
+
+        const pendingList = document.getElementById('pendingList');
+        if (!pendingList) return;
+
+        if (snapshot.empty) {
+            pendingList.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-user-follow-line" style="font-size: 48px; color: #666;"></i>
+                    <p>暂无待审核用户</p>
+                </div>
+            `;
+            return;
+        }
+
+        pendingList.innerHTML = snapshot.docs.map(doc => {
+            const user = doc.data();
+            return `
+                <div class="card user-card">
+                    <div class="user-card-header">
+                        <i class="ri-user-line user-icon"></i>
+                        <h3>${user.username}</h3>
+                    </div>
+                    <div class="user-card-content">
+                        <p><i class="ri-building-line"></i> 单位: ${user.company}</p>
+                        <p><i class="ri-phone-line"></i> 电话: ${user.phone}</p>
+                        <p><i class="ri-time-line"></i> 申请时间: ${user.createdAt}</p>
+                    </div>
+                    <div class="user-card-actions">
+                        <button onclick="handleApprove('${doc.id}')" class="btn btn-primary">
+                            <i class="ri-check-line"></i> 通过
+                        </button>
+                        <button onclick="handleReject('${doc.id}')" class="btn btn-danger">
+                            <i class="ri-close-line"></i> 拒绝
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('加载待审核用户失败:', error);
+        alert('加载失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function handleApprove(userId) {
+    if (!confirm('确定通过该用户的申请吗？')) return;
+
+    showLoading(true);
+    try {
+        await db.collection('users').doc(userId).update({
+            status: 'approved',
+            approvedAt: CURRENT_TIME,
+            approvedBy: currentUser.username
+        });
+
+        alert('已通过用户申请');
+        await loadPendingUsers();
+
+    } catch (error) {
+        console.error('审批失败:', error);
+        alert('操作失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function handleReject(userId) {
+    if (!confirm('确定拒绝该用户的申请吗？')) return;
+
+    showLoading(true);
+    try {
+        await db.collection('users').doc(userId).update({
+            status: 'rejected',
+            rejectedAt: CURRENT_TIME,
+            rejectedBy: currentUser.username
+        });
+
+        alert('已拒绝用户申请');
+        await loadPendingUsers();
+
+    } catch (error) {
+        console.error('拒绝失败:', error);
+        alert('操作失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// 代码文件管理
+function showUploadForm() {
+    const modal = document.getElementById('codeModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const codeId = document.getElementById('codeId');
+    const fileName = document.getElementById('fileName');
+    const codeContent = document.getElementById('codeContent');
+
+    if (modal && modalTitle && codeId && fileName && codeContent) {
+        modalTitle.textContent = '上传代码';
+        codeId.value = '';
+        fileName.value = '';
+        fileName.readOnly = false;
+        codeContent.value = '';
+        codeContent.readOnly = false;
+        modal.style.display = 'block';
+    }
+}
+
+function hideCodeModal() {
+    const modal = document.getElementById('codeModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function getLanguageIcon(fileName) {
+    const extension = fileName.split('.').pop().toLowerCase();
+    const icons = {
+        'js': '<i class="ri-javascript-line"></i>',
+        'py': '<i class="ri-python-line"></i>',
+        'java': '<i class="ri-code-line"></i>',
+        'html': '<i class="ri-html5-line"></i>',
+        'css': '<i class="ri-css3-line"></i>',
+        'default': '<i class="ri-file-code-line"></i>'
+    };
+    return icons[extension] || icons.default;
+}
+
+function getCodePreview(content) {
+    const maxLength = 150;
+    const preview = content.slice(0, maxLength);
+    return `<pre class="code-preview-content">${preview}${content.length > maxLength ? '...' : ''}</pre>`;
+}
+
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (error) {
+        return dateString;
+    }
+}
+
+async function handleCodeSubmit(event) {
+    event.preventDefault();
+
+    const fileName = document.getElementById('fileName').value.trim();
+    const content = document.getElementById('codeContent').value.trim();
+    const codeId = document.getElementById('codeId').value;
+
+    if (!fileName || !content) {
+        alert('请填写所有必填字段');
+        return;
+    }
+
+    showLoading(true);
+    try {
+        if (codeId) {
+            // 更新现有代码
+            await db.collection('codes').doc(codeId).update({
+                fileName,
+                content,
+                updatedAt: CURRENT_TIME,
+                updatedBy: currentUser.username
+            });
+        } else {
+            // 添加新代码
+            await db.collection('codes').add({
+                fileName,
+                content,
+                createdAt: CURRENT_TIME,
+                createdBy: currentUser.username,
+                updatedAt: CURRENT_TIME,
+                updatedBy: currentUser.username
             });
         }
 
-        alert('更新成功');
-        document.querySelector('.modal').remove();
-        loadCodeFiles(true);
-    } catch (error) {
-        console.error('保存编辑错误:', error);
-        alert('更新失败: ' + error.message);
-    }
-}
-
-// 加载代码文件列表
-async function loadCodeFiles(isAdmin = false) {
-    console.log('开始加载代码文件列表...', { isAdmin });
-    
-    const fileListElement = isAdmin ? 
-        document.getElementById('adminFileList') : 
-        document.getElementById('fileList');
-    
-    if (!fileListElement) {
-        console.error('找不到文件列表容器:', isAdmin ? 'adminFileList' : 'fileList');
-        return;
-    }
-    
-    fileListElement.innerHTML = '<p>正在加载...</p>';
-
-    try {
-        console.log('正在查询 Firestore...');
+        alert(codeId ? '代码已更新' : '代码已上传');
+        hideCodeModal();
         
-        const snapshot = await db.collection('codefiles')
-            .orderBy('uploadedAt', 'desc')
-            .limit(10) // 限制加载数量
-            .get();
-
-        console.log('查询结果:', {
-            empty: snapshot.empty,
-            size: snapshot.size
-        });
-
-        if (snapshot.empty) {
-            fileListElement.innerHTML = `
-                <div class="empty-state">
-                    <p>暂无代码文件</p>
-                    ${isAdmin ? '<p>点击"上传代码"按钮添加新文件</p>' : ''}
-                </div>
-            `;
-            return;
+        if (currentUser.role === 'admin') {
+            await loadAdminCodeList();
+        } else {
+            await loadUserCodeList();
         }
-
-        fileListElement.innerHTML = '';
-        const gridContainer = document.createElement('div');
-        gridContainer.className = 'file-grid';
-
-        snapshot.forEach(doc => {
-            const file = doc.data();
-            const div = document.createElement('div');
-            div.className = 'code-item';
-            div.innerHTML = `
-                <div class="code-header">
-                    <h4>${file.name || '未命名文件'}</h4>
-                    <span class="language-badge">${file.language || 'Other'}</span>
-                </div>
-                <p class="description">${file.description || '无描述'}</p>
-                <div class="meta-info">
-                    <span>上传者: ${file.uploaderName || '未知用户'}</span>
-                    <span>上传时间: ${file.uploadedAt || '未知'}</span>
-                </div>
-                <div class="code-actions">
-                    <button onclick="viewCode('${doc.id}')" class="btn primary">查看代码</button>
-                    ${isAdmin ? `
-                        <button onclick="editCode('${doc.id}')" class="btn secondary">编辑</button>
-                        <button onclick="deleteCode('${doc.id}')" class="btn danger">删除</button>
-                    ` : ''}
-                </div>
-            `;
-            gridContainer.appendChild(div);
-        });
-
-        fileListElement.appendChild(gridContainer);
-
-    } catch (error) {
-        console.error('加载代码文件失败:', error);
-        fileListElement.innerHTML = `
-            <div class="error-message">
-                <p>加载失败: ${error.message}</p>
-                <p>详细错误: ${error.toString()}</p>
-                <button onclick="loadCodeFiles(${isAdmin})" class="btn secondary">重新加载</button>
-            </div>
-        `;
-    }
-}
-
-// 查看代码
-async function viewCode(fileId) {
-    try {
-        const doc = await db.collection('codefiles').doc(fileId).get();
-        if (!doc.exists) {
-            alert('文件不存在');
-            return;
-        }
-
-        const file = doc.data();
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        
-        // 转义代码内容以安全显示
-        const escapedContent = file.content
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-        
-        modal.innerHTML = `
-            <div class="modal-content code-view">
-                <div class="code-view-header">
-                    <div>
-                        <h2>${file.name}</h2>
-                        <div class="meta-info">
-                            <span>语言: ${file.language}</span>
-                            <span>上传者: ${file.uploaderName}</span>
-                            <span>上传时间: ${file.uploadedAt}</span>
-                        </div>
-                    </div>
-                    <button onclick="this.closest('.modal').remove()" class="btn secondary">关闭</button>
-                </div>
-                ${file.description ? `<p class="description">${file.description}</p>` : ''}
-                <div class="code-container">
-                    <pre class="code-display"><code>${escapedContent}</code></pre>
-                    <button onclick="copyCode(this)" class="btn secondary copy-btn">复制代码</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-    } catch (error) {
-        console.error('查看代码错误:', error);
-        alert('加载失败: ' + error.message);
-    }
-}
-
-// 保存代码
-async function uploadCode() {
-    try {
-        const fileName = document.getElementById('codeFileName').value.trim();
-        const codeContent = document.getElementById('codeContent').value.trim();
-        const language = document.getElementById('codeLanguage').value;
-        const description = document.getElementById('codeDescription').value.trim();
-
-        if (!fileName || !codeContent) {
-            alert('请填写文件名和代码内容');
-            return;
-        }
-
-        const currentTime = getCurrentDateTime();
-
-        const codeData = {
-            name: fileName,
-            content: codeContent,
-            language: language,
-            description: description,
-            uploadedBy: currentUser.username,
-            uploaderName: currentUser.username,
-            uploadedAt: currentTime,
-            lastModified: currentTime
-        };
-
-        // 保存到 codefiles 集合
-        const docRef = await db.collection('codefiles').add(codeData);
-
-        // 同时保存到 date 集合
-        await db.collection('date').add({
-            fileId: docRef.id,
-            fileName: fileName,
-            language: language,
-            uploadTime: currentTime,
-            uploadedBy: currentUser.username,
-            content: codeContent,
-            description: description
-        });
-
-        alert('代码文件保存成功');
-        clearCodeForm();
-        loadCodeFiles(true);
 
     } catch (error) {
         console.error('保存代码失败:', error);
-        alert('保存失败: ' + error.message);
+        alert('操作失败: ' + error.message);
+    } finally {
+        showLoading(false);
     }
 }
 
-// 删除代码
-async function deleteCode(fileId) {
+async function loadUserCodeList() {
+    showLoading(true);
+    try {
+        const snapshot = await db.collection('codes')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const codeList = document.getElementById('userCodeList');
+        if (!codeList) return;
+
+        if (snapshot.empty) {
+            codeList.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-code-box-line" style="font-size: 48px; color: #666;"></i>
+                    <p>暂无代码文件</p>
+                </div>
+            `;
+            return;
+        }
+
+        codeList.innerHTML = `
+            <div class="code-list-header">
+                <h2>代码文件列表</h2>
+                <div class="code-list-actions">
+                    <input type="text" id="searchCode" class="search-input" placeholder="搜索代码文件...">
+                    <select id="languageFilter" class="filter-select">
+                        <option value="">所有语言</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
+                </div>
+            </div>
+            <div class="code-grid">
+                ${snapshot.docs.map(doc => {
+                    const code = doc.data();
+                    return `
+                        <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
+                            <div class="code-card-header">
+                                <div class="code-icon">
+                                    ${getLanguageIcon(code.fileName)}
+                                </div>
+                                <div class="code-info">
+                                    <h3 class="code-title">${code.fileName}</h3>
+                                    <span class="code-meta">创建者: ${code.createdBy}</span>
+                                </div>
+                            </div>
+                            <div class="code-card-content">
+                                <div class="code-preview">
+                                    ${getCodePreview(code.content)}
+                                </div>
+                            </div>
+                            <div class="code-card-footer">
+                                <span class="code-date">创建时间: ${formatDate(code.createdAt)}</span>
+                                <div class="code-actions">
+                                    <button onclick="viewCode('${doc.id}')" class="btn btn-icon" title="查看">
+                                        <i class="ri-eye-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+
+        initializeCodeListFilters();
+
+    } catch (error) {
+        console.error('加载代码列表失败:', error);
+        alert('加载失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function loadAdminCodeList() {
+    showLoading(true);
+    try {
+        const snapshot = await db.collection('codes')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const codeList = document.getElementById('adminCodeList');
+        if (!codeList) return;
+
+        if (snapshot.empty) {
+            codeList.innerHTML = `
+                <div class="empty-state">
+                    <i class="ri-code-box-line" style="font-size: 48px; color: #666;"></i>
+                    <p>暂无代码文件</p>
+                </div>
+            `;
+            return;
+        }
+
+        codeList.innerHTML = `
+            <div class="code-list-header">
+                <h2>代码文件管理</h2>
+                <div class="code-list-actions">
+                    <input type="text" id="adminSearchCode" class="search-input" placeholder="搜索代码文件...">
+                    <select id="adminLanguageFilter" class="filter-select">
+                        <option value="">所有语言</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="java">Java</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
+                    <button onclick="showUploadForm()" class="btn btn-primary">
+                        <i class="ri-add-line"></i> 新建代码
+                    </button>
+                </div>
+            </div>
+            <div class="code-grid">
+                ${snapshot.docs.map(doc => {
+                    const code = doc.data();
+                    return `
+                        <div class="code-card" data-language="${getFileLanguage(code.fileName)}">
+                            <div class="code-card-header">
+                                <div class="code-icon">
+                                    ${getLanguageIcon(code.fileName)}
+                                </div>
+                                <div class="code-info">
+                                    <h3 class="code-title">${code.fileName}</h3>
+                                    <span class="code-meta">创建者: ${code.createdBy}</span>
+                                </div>
+                            </div>
+                            <div class="code-card-content">
+                                <div class="code-preview">
+                                    ${getCodePreview(code.content)}
+                                </div>
+                            </div>
+                            <div class="code-card-footer">
+                                <span class="code-date">更新时间: ${formatDate(code.updatedAt)}</span>
+                                <div class="code-actions">
+                                    <button onclick="viewCode('${doc.id}')" class="btn btn-icon" title="查看">
+                                        <i class="ri-eye-line"></i>
+                                    </button>
+                                    <button onclick="editCode('${doc.id}')" class="btn btn-icon" title="编辑">
+                                        <i class="ri-edit-line"></i>
+                                    </button>
+                                    <button onclick="deleteCode('${doc.id}')" class="btn btn-icon" title="删除">
+                                        <i class="ri-delete-bin-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+
+        initializeCodeListFilters('admin');
+
+    } catch (error) {
+        console.error('加载代码列表失败:', error);
+        alert('加载失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+function initializeCodeListFilters(prefix = '') {
+    const searchInput = document.getElementById(`${prefix}searchCode`.trim());
+    const languageFilter = document.getElementById(`${prefix}languageFilter`.trim());
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => filterCodeCards(prefix));
+    }
+    
+    if (languageFilter) {
+        languageFilter.addEventListener('change', (e) => filterCodeCards(prefix));
+    }
+}
+
+function filterCodeCards(prefix = '') {
+    const searchInput = document.getElementById(`${prefix}searchCode`.trim());
+    const languageFilter = document.getElementById(`${prefix}languageFilter`.trim());
+    const codeCards = document.querySelectorAll('.code-card');
+
+    const searchText = searchInput ? searchInput.value.toLowerCase() : '';
+    const selectedLanguage = languageFilter ? languageFilter.value.toLowerCase() : '';
+
+    codeCards.forEach(card => {
+        const title = card.querySelector('.code-title').textContent.toLowerCase();
+        const language = card.dataset.language.toLowerCase();
+        
+        const matchesSearch = title.includes(searchText);
+        const matchesLanguage = !selectedLanguage || language === selectedLanguage;
+
+        card.style.display = matchesSearch && matchesLanguage ? 'block' : 'none';
+    });
+}
+
+function getFileLanguage(fileName) {
+    const extension = fileName.split('.').pop().toLowerCase();
+    const languages = {
+        'js': 'javascript',
+        'py': 'python',
+        'java': 'java',
+        'html': 'html',
+        'css': 'css'
+    };
+    return languages[extension] || 'other';
+}
+
+async function viewCode(codeId) {
+    showLoading(true);
+    try {
+        const doc = await db.collection('codes').doc(codeId).get();
+        if (!doc.exists) {
+            alert('代码文件不存在');
+            return;
+        }
+
+        const code = doc.data();
+        const modalTitle = document.getElementById('modalTitle');
+        const fileName = document.getElementById('fileName');
+        const codeContent = document.getElementById('codeContent');
+        const codeForm = document.getElementById('codeForm');
+        const modal = document.getElementById('codeModal');
+
+        if (modalTitle && fileName && codeContent && codeForm && modal) {
+            modalTitle.textContent = '查看代码';
+            fileName.value = code.fileName;
+            fileName.readOnly = true;
+            codeContent.value = code.content;
+            codeContent.readOnly = true;
+            codeForm.onsubmit = null;
+            modal.style.display = 'block';
+        }
+
+    } catch (error) {
+        console.error('查看代码失败:', error);
+        alert('操作失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function editCode(codeId) {
+    showLoading(true);
+    try {
+        const doc = await db.collection('codes').doc(codeId).get();
+        if (!doc.exists) {
+            alert('代码文件不存在');
+            return;
+        }
+
+        const code = doc.data();
+        const modalTitle = document.getElementById('modalTitle');
+        const codeIdInput = document.getElementById('codeId');
+        const fileName = document.getElementById('fileName');
+        const codeContent = document.getElementById('codeContent');
+        const codeForm = document.getElementById('codeForm');
+        const modal = document.getElementById('codeModal');
+
+        if (modalTitle && codeIdInput && fileName && codeContent && codeForm && modal) {
+            modalTitle.textContent = '编辑代码';
+            codeIdInput.value = codeId;
+            fileName.value = code.fileName;
+            fileName.readOnly = false;
+            codeContent.value = code.content;
+            codeContent.readOnly = false;
+            codeForm.onsubmit = handleCodeSubmit;
+            modal.style.display = 'block';
+        }
+
+    } catch (error) {
+        console.error('编辑代码失败:', error);
+        alert('操作失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function deleteCode(codeId) {
     if (!confirm('确定要删除这个代码文件吗？此操作不可恢复。')) {
         return;
     }
 
+    showLoading(true);
     try {
-        // 删除 codefiles 中的文档
-        await db.collection('codefiles').doc(fileId).delete();
-        
-        // 删除关联的 date 文档
-        const dateSnapshot = await db.collection('date')
-            .where('fileId', '==', fileId)
-            .get();
-        
-        const deletePromises = dateSnapshot.docs.map(doc => 
-            db.collection('date').doc(doc.id).delete()
-        );
-        await Promise.all(deletePromises);
-
-        alert('删除成功');
-        loadCodeFiles(true);
+        await db.collection('codes').doc(codeId).delete();
+        alert('代码文件已删除');
+        if (currentUser.role === 'admin') {
+            await loadAdminCodeList();
+        } else {
+            await loadUserCodeList();
+        }
     } catch (error) {
         console.error('删除代码失败:', error);
-        alert('删除失败: ' + error.message);
+        alert('操作失败: ' + error.message);
+    } finally {
+        showLoading(false);
     }
 }
 
-// 获取当前时间的函数
-function getCurrentDateTime() {
-    const now = new Date();
-    return now.toISOString().slice(0, 19).replace('T', ' ');
+function handleLogout() {
+    currentUser = null;
+    showLoginForm();
 }
 
-// 清理代码表单
-function clearCodeForm() {
-    document.getElementById('codeFileName').value = '';
-    document.getElementById('codeContent').value = '';
-    document.getElementById('codeDescription').value = '';
-    document.getElementById('codeLanguage').value = 'JavaScript';
-    localStorage.removeItem('draftCode');
-}
-
-// 添加到页面加载事件
-document.addEventListener('DOMContentLoaded', () => {
-    // 设置代码编辑器的自动保存
-    const codeContent = document.getElementById('codeContent');
-    if (codeContent) {
-        let autoSaveTimeout;
-        codeContent.addEventListener('input', () => {
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = setTimeout(() => {
-                localStorage.setItem('draftCode', codeContent.value);
-                console.log('代码已自动保存到本地存储');
-            }, 1000);
-        });
-
-        // 恢复上次编辑的内容
-        const savedDraft = localStorage.getItem('draftCode');
-        if (savedDraft) {
-            codeContent.value = savedDraft;
-            console.log('已恢复上次编辑的内容');
-        }
-    }
-});
-// 在页面加载时设置自动保存
-document.addEventListener('DOMContentLoaded', () => {
-    setupAutoSave();
-});
-
-// 清除注册表单
-function clearRegistrationForm() {
-    document.getElementById('registerUsername').value = '';
-    document.getElementById('registerPassword').value = '';
-    document.getElementById('registerCompany').value = '';
-    document.getElementById('registerPhone').value = '';
-}
-    // 添加样式
-    const style = document.createElement('style');
-    style.textContent = `
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 20px;
-            border-radius: 5px;
-            max-width: 80%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .code-item {
-            border: 1px solid #ddd;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 5px;
-            background: #fff;
-        }
-
-        .language-badge {
-            background: #007bff;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
-
-        .btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 5px;
-        }
-
-        .btn.primary {
-            background: #007bff;
-            color: white;
-        }
-
-        .btn.secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn.danger {
-            background: #dc3545;
-            color: white;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-
-        .code-input {
-            font-family: monospace;
-            min-height: 200px;
-        }
-
-        .error-message {
-            color: #721c24;
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-    `;
-    document.head.appendChild(style);
-
-// 添加加载已审核用户的函数
-async function loadApprovedUsers() {
-    const approvedList = document.getElementById('approvedList');
-    if (!approvedList) return;
+function switchTab(tabId) {
+    const tabs = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.panel');
     
-    approvedList.innerHTML = '<p>正在加载...</p>';
+    tabs.forEach(tab => tab.classList.remove('active'));
+    panels.forEach(panel => panel.classList.remove('active'));
+    
+    const selectedTab = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
+    const selectedPanel = document.getElementById(tabId);
+    
+    if (selectedTab && selectedPanel) {
+        selectedTab.classList.add('active');
+        selectedPanel.classList.add('active');
+    }
 
-    try {
-        // 修改查询条件，使用 status 字段
-        const snapshot = await db.collection('users')
-            .where('status', '==', 'approved')
-            .where('isApproved', '==', true)
-            .get();
-
-        if (snapshot.empty) {
-            approvedList.innerHTML = '<p>暂无已审核用户</p>';
-            return;
-        }
-
-        let tableHTML = `
-            <table class="user-table">
-                <thead>
-                    <tr>
-                        <th>用户名</th>
-                        <th>单位</th>
-                        <th>电话</th>
-                        <th>注册时间</th>
-                        <th>最后登录</th>
-                        <th>登录次数</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        snapshot.forEach(doc => {
-            const user = doc.data();
-            tableHTML += `
-                <tr>
-                    <td>${user.username}</td>
-                    <td>${user.company || '-'}</td>
-                    <td>${user.phone || '-'}</td>
-                    <td>${user.createdAt || '-'}</td>
-                    <td>${user.lastLogin || '-'}</td>
-                    <td>${user.loginCount || 0}</td>
-                    <td>
-                        <button onclick="disableUser('${doc.id}')" class="btn secondary btn-small">禁用</button>
-                    </td>
-                </tr>
-            `;
-        });
-
-        tableHTML += '</tbody></table>';
-        approvedList.innerHTML = tableHTML;
-
-    } catch (error) {
-        console.error('加载已审核用户失败:', error);
-        approvedList.innerHTML = `
-            <div class="error-message">
-                <p>加载失败: ${error.message}</p>
-                <button onclick="loadApprovedUsers()" class="btn secondary">重新加载</button>
-            </div>
-        `;
+    if (tabId === 'codeFiles') {
+        loadAdminCodeList();
+    } else if (tabId === 'pendingUsers') {
+        loadPendingUsers();
     }
 }
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('系统初始化 -', CURRENT_TIME);
+    console.log('当前用户:', CURRENT_USER);
+
+    // 绑定表单提交事件
+    const loginForm = document.getElementById('loginFormElement');
+    const registerForm = document.getElementById('registerFormElement');
+    const statusQueryForm = document.getElementById('statusQueryElement');
+    const codeForm = document.getElementById('codeForm');
+
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
+    if (registerForm) registerForm.addEventListener('submit', handleRegister);
+    if (statusQueryForm) statusQueryForm.addEventListener('submit', handleStatusQuery);
+    if (codeForm) codeForm.addEventListener('submit', handleCodeSubmit);
+
+    // 显示登录表单
+    showLoginForm();
+});
+
+// 导出全局函数
+window.showLoginForm = showLoginForm;
+window.showRegisterForm = showRegisterForm;
+window.showStatusQuery = showStatusQuery;
+window.handleLogout = handleLogout;
+window.showUploadForm = showUploadForm;
+window.hideCodeModal = hideCodeModal;
+window.handleApprove = handleApprove;
+window.handleReject = handleReject;
+window.viewCode = viewCode;
+window.editCode = editCode;
+window.deleteCode = deleteCode;
+window.switchTab = switchTab;
